@@ -6,7 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<title>ジェットコースターとエネルギー</title>
+<title>ジェットコースターの高さと速さ</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=BIZ+UDPGothic:wght@400;700&display=swap">
@@ -52,7 +52,7 @@ button:focus-visible{outline:3px solid var(--total);outline-offset:2px}
 
 /* ？とバージョン */
 #helpBtn{position:fixed;right:calc(12px + env(safe-area-inset-right,0px));top:calc(12px + env(safe-area-inset-top,0px));width:48px;height:48px;border-radius:24px;font-size:26px;font-weight:700;background:var(--panel);border:1px solid var(--panel-line)}
-#ver{position:fixed;right:calc(68px + env(safe-area-inset-right,0px));top:calc(26px + env(safe-area-inset-top,0px));font-size:11px;color:var(--muted);opacity:.8}
+#ver{text-align:right;font-size:11px;color:#8a95ab;margin:10px 0 0}
 
 /* 下のパネル */
 #bottom{position:fixed;left:calc(12px + env(safe-area-inset-left,0px));right:calc(12px + env(safe-area-inset-right,0px));bottom:calc(12px + env(safe-area-inset-bottom,0px));display:flex;flex-direction:column;gap:8px}
@@ -71,6 +71,13 @@ button:focus-visible{outline:3px solid var(--total);outline-offset:2px}
 #profileHead .lg span{display:flex;align-items:center;gap:5px}
 #profileHead .sw{width:18px;height:10px;border-radius:2px;display:inline-block}
 #letters{position:relative;height:56px;margin-top:2px}
+.tabs{display:flex;gap:6px;align-items:center}
+.tabs button{min-height:44px;padding:0 16px;border-radius:22px;background:rgba(255,255,255,.1);font-size:15px;font-weight:700}
+.tabs button[aria-pressed="true"]{background:#fff;color:#0b1a33}
+.tabs .ghost{background:transparent;border:2px solid rgba(255,255,255,.3);font-size:13px;margin-left:8px;display:none}
+body.game-build .tabs .ghost{display:inline-block}
+body.game-build #letters{display:none}
+#profile{touch-action:none}
 .letter{position:absolute;top:0;width:46px;height:52px;margin-left:-23px;border-radius:12px;background:rgba(255,255,255,.12);border:2px solid rgba(255,255,255,.35);display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1.05}
 .letter b{font-size:24px}
 .letter small{font-size:11px;color:var(--total);font-variant-numeric:tabular-nums;min-height:1em}
@@ -103,9 +110,9 @@ body.mode-ride #profileBox{height:118px}
 body.mode-ride #letters{display:none}
 body.mode-ride #goBtn{display:none}
 body.mode-ride #profileHead{display:none}
-body.mode-ride.graph-faint #profileBox{opacity:.55}
-body.mode-ride.graph-faint #controls,body.mode-ride.graph-hide #controls{opacity:.55}
-body.mode-ride.graph-hide #profileBox{opacity:0;pointer-events:none}
+body.graph-faint #profileBox{opacity:.55}
+body.graph-faint #controls,body.graph-hide #controls{opacity:.55}
+body.graph-hide #profileBox{opacity:0;pointer-events:none}
 #profile{flex:1 1 0;min-height:0}
 #lineBtn{flex-direction:column;gap:0;line-height:1.15}
 #lineBtn small{font-size:11px;font-weight:400}
@@ -135,7 +142,7 @@ body.mode-ride.graph-hide #profileBox{opacity:0;pointer-events:none}
 </script>
 </head>
 <body>
-<!-- build: 2026-10-04 -->
+<!-- build: 2026-10-04 #11 -->
 <div id="view"></div>
 
 <div id="speedPanel" class="panel" aria-live="off">
@@ -149,7 +156,6 @@ body.mode-ride.graph-hide #profileBox{opacity:0;pointer-events:none}
 <div id="caption" class="panel"></div>
 
 <button id="helpBtn" aria-label="あそびかた">？</button>
-<div id="ver">v2026-10-04</div>
 
 <div id="bottom">
   <div id="controls" class="panel">
@@ -166,7 +172,11 @@ body.mode-ride.graph-hide #profileBox{opacity:0;pointer-events:none}
   </div>
   <div id="profileBox" class="panel">
     <div id="profileHead">
-      <span>コースの <ruby>高<rt>たか</rt></ruby>さ と <ruby>速<rt>はや</rt></ruby>さ</span>
+      <span class="tabs" id="gameTabs">
+        <button data-game="ride" aria-pressed="true"><ruby>乗<rt>の</rt></ruby>ってみる</button>
+        <button data-game="build" aria-pressed="false"><ruby>高<rt>たか</rt></ruby>さを <ruby>変<rt>か</rt></ruby>える</button>
+        <button id="resetBuild" class="ghost">もとに もどす</button>
+      </span>
       <span class="lg">
         <span><i class="sw" style="background:#8ea3c7"></i><ruby>高<rt>たか</rt></ruby>さ</span>
         <span><i class="sw" style="background:var(--ke)"></i><ruby>速<rt>はや</rt></ruby>さ</span>
@@ -179,7 +189,7 @@ body.mode-ride.graph-hide #profileBox{opacity:0;pointer-events:none}
 
 <div id="help" role="dialog" aria-modal="true" aria-labelledby="helpTitle">
   <div class="card">
-    <h1 id="helpTitle">ジェットコースターと エネルギー</h1>
+    <h1 id="helpTitle">ジェットコースターの <ruby>高<rt>たか</rt></ruby>さと <ruby>速<rt>はや</rt></ruby>さ</h1>
     <p class="lead">ジェットコースターの <b><ruby>高<rt>たか</rt></ruby>さ</b> と <b><ruby>速<rt>はや</rt></ruby>さ</b> の <ruby>関係<rt>かんけい</rt></ruby>を <ruby>調<rt>しら</rt></ruby>べよう。</p>
     <div class="grid">
       <div class="item">
@@ -198,9 +208,14 @@ body.mode-ride.graph-hide #profileBox{opacity:0;pointer-events:none}
         <svg viewBox="0 0 92 72"><path d="M4 62 L18 62 L30 16 L40 16 L52 62 L64 40 L76 56 L88 56" fill="#dfe6f2" stroke="#8ea3c7" stroke-width="3"/><path d="M4 50 L30 50 L40 52 L52 14 L64 34 L76 24 L88 26" fill="none" stroke="#ff7a2f" stroke-width="3.5"/></svg>
         <div><h3>4. こたえあわせ</h3><p>ゴールすると、<ruby>高<rt>たか</rt></ruby>さの <ruby>山<rt>やま</rt></ruby>（はいいろ）と <ruby>速<rt>はや</rt></ruby>さの <ruby>線<rt>せん</rt></ruby>（オレンジ）が <ruby>出<rt>で</rt></ruby>るよ。くらべてみよう。</p></div>
       </div>
+      <div class="item" style="grid-column:1/-1">
+        <svg viewBox="0 0 92 72"><path d="M4 62 L18 62 L30 18 L40 18 L52 62 L64 34 L76 56 L88 56" fill="#dfe6f2" stroke="#8ea3c7" stroke-width="3"/><path d="M64 38 l-7 7 h4 v8 h-4 l7 7 l7-7 h-4 v-8 h4 z" fill="#3fcf86" stroke="#14213d" stroke-width="1.5"/></svg>
+        <div><h3>5. <ruby>高<rt>たか</rt></ruby>さを <ruby>変<rt>か</rt></ruby>える</h3><p>グラフの <ruby>上<rt>うえ</rt></ruby>の「<ruby>高<rt>たか</rt></ruby>さを <ruby>変<rt>か</rt></ruby>える」を <ruby>押<rt>お</rt></ruby>すと、<ruby>山<rt>やま</rt></ruby>の <ruby>下<rt>した</rt></ruby>の <b style="color:#17a861">↕</b> を <ruby>上下<rt>うえした</rt></ruby>に うごかして コースを かえられるよ。ゴールまで いけるかな？</p></div>
+      </div>
     </div>
     <p class="lead" style="margin:12px 0 0;font-size:15px">こまったら <ruby>右上<rt>みぎうえ</rt></ruby>の「？」で この <ruby>説明<rt>せつめい</rt></ruby>が <ruby>出<rt>で</rt></ruby>るよ（<ruby>見<rt>み</rt></ruby>ている <ruby>間<rt>あいだ</rt></ruby>は ストップ）。</p>
     <div class="foot"><button id="startBtn">はじめる</button></div>
+    <p id="ver">v2026-10-04-11</p>
   </div>
 </div>
 
@@ -214,6 +229,9 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 const CFG = {
   g: 9.8,                 // 重力加速度 m/s²
   liftSpeed: 8,           // チェーンで上がる速さ m/s
+  chainClickGap: 0.9,     // チェーンの「トッ」の間隔（秒）。大きいほど ゆっくり
+  slowZone: 30,           // てっぺんの何m手前から ゆっくりにするか
+  crestSpeed: 2,          // チェーンのてっぺんで送り出す速さ m/s（小さいほど「スタートの高さ」がそのまま限界になる）
   timeScale: 1.0,         // 全体の時間の速さ（1=実際と同じ）
   carCount: 3,            // 車両の数
   carGap: 4.2,            // 車両の間隔 m
@@ -223,18 +241,24 @@ const CFG = {
   profile: [[0.00,3],[0.04,3],[0.15,42],[0.165,42],[0.27,1],[0.36,26],[0.45,10],[0.53,22],[0.62,12],[0.70,16],[0.80,3],[1.00,3]],
   liftEndU: 0.165,        // チェーン区間の終わり
   brakeStartU: 0.70,      // ブレーキ区間の始まり
-  stopU: 0.985,           // 止まる位置（えき）
-  startU: 0.012,          // 出発位置
+  stopInStation: 0.6,     // 止まる位置：えき（屋根の下）の何割まで進んで止まるか。次の出発も同じ場所から
   stationEndU: 0.04,
   stopHeight: 3,          // えきの高さ m
   // よそうのポイント [記号, 位置u]
   letters: [['A',0.157],['B',0.27],['C',0.36],['D',0.45],['E',0.53]],
+  letterY: 10.5,          // A〜E の丸い印の高さ（レールから m）
+  letterPoleY: 6.3,       // 印の棒の中心の高さ（棒は短く、乗っている人の頭より上）
   heightAxisMax: 46,      // 下のグラフの高さの最大 m
   resultDelay: 2.5,       // ゴールしてからグラフ（こたえあわせ）が出るまでの秒数
   speedAxisMax: 120,      // 下のグラフの速さの最大 km/h
   farCarScaleMax: 7,      // ぜんたい表示で車両を最大何倍に見せるか
   farCarScaleDist: 55,    // この距離(m)ごとに1倍ずつ大きく見せる
-  graphRide: 'show',      // 走っている間の下のグラフ：'show'（あり）/'faint'（うすく）/'hide'（なし）。こたえあわせでは必ず表示
+  // ②つくってみる：うごかせる点 [名前, profileの番号, 最低m, 最高m]
+  handles: [['スタート',[2,3],15,55],['山1',[5],4,55],['山2',[7],4,55],['山3',[9],4,55]],
+  buildAxisMax: 60,       // つくってみる のときのグラフの高さの最大 m
+  stallDamp: 0.3,         // のぼれずに戻ってきたとき、ゆれを止めるための補正（大きいほど早く止まる）
+  stallTime: 14,          // のぼれなかったあと、遅くともこの秒数で「おわり」にする
+  graphRide: 'show',      // 下のグラフ：'show'（あり）/'faint'（うすく）/'hide'（なし）。走る前・走っている間・こたえあわせ すべてに効く
 };
 
 // ============================================================
@@ -279,14 +303,21 @@ function buildTrack(N=3000){
   const uToS=(u)=>{ for(let i=0;i<=N;i++) if(U[i]>=u) return i*ds; return L; };
   return {N,L,ds,P,U,Y,DY,DDY,T,B,Nu,uToS};
 }
-const TR = buildTrack();
-const S = {
-  start: TR.uToS(CFG.startU), liftEnd: TR.uToS(CFG.liftEndU), brake: TR.uToS(CFG.brakeStartU),
-  stop: TR.uToS(CFG.stopU), stationEnd: TR.uToS(CFG.stationEndU),
-};
-const LETTERS = CFG.letters.map(([k,u])=>({k, s:TR.uToS(u)}));
+const PROFILE_DEFAULT = CFG.profile.map(p=>[...p]);   // ①のってみる のコース（変えない）
+let buildProfile = CFG.profile.map(p=>[...p]);        // ②つくってみる のコース（ドラッグで変わる）
+let TR = buildTrack();
+const S = {};
+function computeS(){
+  const stationEnd=TR.uToS(CFG.stationEndU);
+  // コースは1周つながっているので、ゴールは「1周＋えきの中」。出発も同じ場所（屋根の下）
+  Object.assign(S,{ start: stationEnd*CFG.stopInStation, liftEnd: TR.uToS(CFG.liftEndU), brake: TR.uToS(CFG.brakeStartU),
+    stop: TR.L+stationEnd*CFG.stopInStation, stationEnd });
+}
+computeS();
+const LETTERS = CFG.letters.map(([k,u])=>({k, u, s:TR.uToS(u)}));
 
 function sample(arr, s){
+  if(s>TR.L) s-=TR.L;   // 1周をこえた分（えきの中）
   const f=Math.max(0,Math.min(TR.N,s/TR.ds)); const i=Math.min(TR.N-1,Math.floor(f)), t=f-i;
   return arr[i]+(arr[i+1]-arr[i])*t;
 }
@@ -318,6 +349,22 @@ function canvasTex(w,h,draw){ const c=document.createElement('canvas'); c.width=
 // 空
 scene.background=canvasTex(4,256,(g,w,h)=>{const gr=g.createLinearGradient(0,0,0,h);gr.addColorStop(0,'#3c7fd6');gr.addColorStop(.55,'#9fd0f5');gr.addColorStop(1,'#e8f4ff');g.fillStyle=gr;g.fillRect(0,0,w,h);});
 scene.fog=new THREE.Fog(0xcfe6fa,250,900);
+// うっすら もくもく雲（Canvasで描いた画像を板にして空に浮かべる）
+const cloudGroup=new THREE.Group();
+{
+  const tex=canvasTex(256,128,(g,w,h)=>{ let sd=3; const r=()=>{sd=(sd*16807)%2147483647;return (sd-1)/2147483646;};
+    for(let i=0;i<14;i++){ const x=50+r()*156, y=58+r()*30-Math.abs(x-128)*0.12, rad=22+r()*26;
+      const gr=g.createRadialGradient(x,y,0,x,y,rad); gr.addColorStop(0,'rgba(255,255,255,.95)'); gr.addColorStop(.6,'rgba(255,255,255,.55)'); gr.addColorStop(1,'rgba(255,255,255,0)');
+      g.fillStyle=gr; g.beginPath(); g.arc(x,y,rad,0,Math.PI*2); g.fill(); } });
+  let sd=11; const r=()=>{sd=(sd*16807)%2147483647;return (sd-1)/2147483646;};
+  for(let i=0;i<12;i++){
+    const sp=new THREE.Sprite(new THREE.SpriteMaterial({map:tex,transparent:true,opacity:.38+r()*.15,depthWrite:false,fog:false}));
+    const a=i/12*Math.PI*2+r()*0.4, d=430+r()*250, k=0.8+r()*0.7;
+    sp.position.set(-10+Math.cos(a)*d, 55+r()*60, 65+Math.sin(a)*d); sp.scale.set(150*k,75*k,1);
+    cloudGroup.add(sp);
+  }
+  scene.add(cloudGroup);
+}
 scene.add(new THREE.HemisphereLight(0xdff0ff,0x5d7a3a,1.1));
 const sun=new THREE.DirectionalLight(0xffffff,1.6); sun.position.set(120,200,80); scene.add(sun);
 
@@ -331,36 +378,43 @@ ground.rotation.x=-Math.PI/2; scene.add(ground);
 const plaza=new THREE.Mesh(new THREE.CircleGeometry(1,64),new THREE.MeshLambertMaterial({color:0xd9c8a4,polygonOffset:true,polygonOffsetFactor:-4,polygonOffsetUnits:-4}));
 plaza.rotation.x=-Math.PI/2; plaza.scale.set(230,120,1); plaza.position.set(-10,0.25,65); scene.add(plaza);
 
-// レール
+// レール・まくらぎ・支柱（コースを変えたら作り直す）
+const railMat=new THREE.MeshStandardMaterial({color:0xe23a4f,metalness:.4,roughness:.45});
+const spineMat=new THREE.MeshStandardMaterial({color:0xf2f2f2,metalness:.3,roughness:.5});
+const tieMat=new THREE.MeshLambertMaterial({color:0xffffff});
+const postMat=new THREE.MeshLambertMaterial({color:0xe9edf3});
+const m4=new THREE.Matrix4(), fr=mkFrame(), col=new THREE.Color();
+let trackGroup=null;
 function offsetCurve(off){
   const pts=[]; for(let i=0;i<TR.N;i+=3){ pts.push(TR.P[i].clone().addScaledVector(TR.B[i],off[0]).addScaledVector(TR.Nu[i],off[1])); }
   return new THREE.CatmullRomCurve3(pts,true);
 }
-const railMat=new THREE.MeshStandardMaterial({color:0xe23a4f,metalness:.4,roughness:.45});
-const spineMat=new THREE.MeshStandardMaterial({color:0xf2f2f2,metalness:.3,roughness:.5});
-const segs=Math.round(TR.L*2);
-scene.add(new THREE.Mesh(new THREE.TubeGeometry(offsetCurve([ 0.62,0]),segs,0.14,6,true),railMat));
-scene.add(new THREE.Mesh(new THREE.TubeGeometry(offsetCurve([-0.62,0]),segs,0.14,6,true),railMat));
-scene.add(new THREE.Mesh(new THREE.TubeGeometry(offsetCurve([0,-0.55]),segs,0.3,8,true),spineMat));
-
-// まくらぎ（チェーン区間は黄色、ブレーキ区間はオレンジ）
-const tieStep=1.1, tieCount=Math.floor(TR.L/tieStep);
-const ties=new THREE.InstancedMesh(new THREE.BoxGeometry(1.6,0.14,0.32),new THREE.MeshLambertMaterial({color:0xffffff}),tieCount);
-const m4=new THREE.Matrix4(), fr=mkFrame(), col=new THREE.Color();
-for(let k=0;k<tieCount;k++){
-  const s=k*tieStep; frameAt(s,fr);
-  m4.makeBasis(fr.b,fr.n,fr.t); m4.setPosition(fr.p.clone().addScaledVector(fr.n,-0.2));
-  ties.setMatrixAt(k,m4);
-  col.set(s>S.stationEnd&&s<S.liftEnd?0xffc531:(s>S.brake&&s<S.stop?0xff8a3d:0x4b5873));
-  ties.setColorAt(k,col);
+function buildTrackMeshes(){
+  if(trackGroup){ scene.remove(trackGroup); trackGroup.traverse(o=>{ if(o.geometry) o.geometry.dispose(); }); }
+  trackGroup=new THREE.Group();
+  const segs=Math.round(TR.L*2);
+  trackGroup.add(new THREE.Mesh(new THREE.TubeGeometry(offsetCurve([ 0.62,0]),segs,0.14,6,true),railMat));
+  trackGroup.add(new THREE.Mesh(new THREE.TubeGeometry(offsetCurve([-0.62,0]),segs,0.14,6,true),railMat));
+  trackGroup.add(new THREE.Mesh(new THREE.TubeGeometry(offsetCurve([0,-0.55]),segs,0.3,8,true),spineMat));
+  // まくらぎ（チェーン区間は黄色、ブレーキ区間はオレンジ）
+  const tieStep=1.1, tieCount=Math.floor(TR.L/tieStep);
+  const ties=new THREE.InstancedMesh(new THREE.BoxGeometry(1.6,0.14,0.32),tieMat,tieCount);
+  for(let k=0;k<tieCount;k++){
+    const s=k*tieStep; frameAt(s,fr);
+    m4.makeBasis(fr.b,fr.n,fr.t); m4.setPosition(fr.p.clone().addScaledVector(fr.n,-0.2));
+    ties.setMatrixAt(k,m4);
+    col.set(s>S.stationEnd&&s<S.liftEnd?0xffc531:(s>S.brake&&s<S.stop?0xff8a3d:0x4b5873));
+    ties.setColorAt(k,col);
+  }
+  trackGroup.add(ties);
+  // 支柱
+  const posts=[]; for(let s=0;s<TR.L;s+=7){ frameAt(s,fr); if(fr.p.y>2.2) posts.push({p:fr.p.clone(),h:fr.p.y-0.8}); }
+  const postMesh=new THREE.InstancedMesh(new THREE.CylinderGeometry(0.22,0.3,1,8),postMat,posts.length);
+  posts.forEach((q,k)=>{ m4.makeScale(1,q.h,1); m4.setPosition(q.p.x,q.h/2,q.p.z); postMesh.setMatrixAt(k,m4); });
+  trackGroup.add(postMesh);
+  scene.add(trackGroup);
 }
-scene.add(ties);
-
-// 支柱
-const posts=[]; for(let s=0;s<TR.L;s+=7){ frameAt(s,fr); if(fr.p.y>2.2) posts.push({p:fr.p.clone(),h:fr.p.y-0.8}); }
-const postMesh=new THREE.InstancedMesh(new THREE.CylinderGeometry(0.22,0.3,1,8),new THREE.MeshLambertMaterial({color:0xe9edf3}),posts.length);
-posts.forEach((q,k)=>{ m4.makeScale(1,q.h,1); m4.setPosition(q.p.x,q.h/2,q.p.z); postMesh.setMatrixAt(k,m4); });
-scene.add(postMesh);
+buildTrackMeshes();
 
 // えき
 {
@@ -397,10 +451,10 @@ function letterTex(k,on){ return canvasTex(128,128,(g)=>{g.fillStyle=on?'#ffd23f
 for(const L of LETTERS){
   L.tex=[letterTex(L.k,false),letterTex(L.k,true)];
   L.sprite=new THREE.Sprite(new THREE.SpriteMaterial({map:L.tex[0],depthTest:false}));
-  frameAt(L.s,fr); L.base=fr.p.clone(); L.sprite.position.copy(fr.p).add(_v1.set(0,9,0)); L.sprite.scale.set(6,6,1); L.sprite.renderOrder=5;
+  frameAt(L.s,fr); L.base=fr.p.clone(); L.sprite.position.copy(fr.p).add(_v1.set(0,CFG.letterY,0)); L.sprite.scale.set(6,6,1); L.sprite.renderOrder=5;
   scene.add(L.sprite);
-  const pole=new THREE.Mesh(new THREE.CylinderGeometry(0.08,0.08,5.5,6),new THREE.MeshBasicMaterial({color:0x14213d}));
-  pole.position.copy(fr.p).add(_v1.set(0,4.2,0)); scene.add(pole);
+  L.pole=new THREE.Mesh(new THREE.CylinderGeometry(0.08,0.08,2.4,6),new THREE.MeshBasicMaterial({color:0x14213d}));
+  L.pole.position.copy(fr.p).add(_v1.set(0,CFG.letterPoleY,0)); scene.add(L.pole);
 }
 
 // 車両（進む向き＝ローカル+z）
@@ -478,11 +532,19 @@ function initAudio(){
   const mk=(type,freq)=>{ const src=ctx.createBufferSource(); src.buffer=buf; src.loop=true; const f=ctx.createBiquadFilter(); f.type=type; f.frequency.value=freq; const gn=ctx.createGain(); gn.gain.value=0; src.connect(f).connect(gn).connect(ctx.destination); src.start(); return {f,gn}; };
   const w=mk('bandpass',400); SND.windFilt=w.f; SND.windGain=w.gn;
   const b=mk('highpass',3000); SND.brakeGain=b.gn;
+  const hum=mk('lowpass',160); SND.humGain=hum.gn;
+  SND.buf=buf;
 }
+// チェーンの「カタン」：金属がかみ合う短い音（ノイズ）＋車体にひびく低い「コトッ」
 function clack(){
   if(!SND.ctx||!SND.on) return; const ctx=SND.ctx,t=ctx.currentTime;
-  const o=ctx.createOscillator(), gn=ctx.createGain(); o.type='square'; o.frequency.value=900;
-  gn.gain.setValueAtTime(0.06,t); gn.gain.exponentialRampToValueAtTime(0.001,t+0.04); o.connect(gn).connect(ctx.destination); o.start(t); o.stop(t+0.05);
+  const loud=0.7+Math.random()*0.3;
+  const src=ctx.createBufferSource(); src.buffer=SND.buf; src.playbackRate.value=0.8+Math.random()*0.3;
+  const bp=ctx.createBiquadFilter(); bp.type='bandpass'; bp.frequency.value=1700+Math.random()*500; bp.Q.value=4;
+  const gn=ctx.createGain(); gn.gain.setValueAtTime(0.22*loud,t); gn.gain.exponentialRampToValueAtTime(0.001,t+0.045);
+  src.connect(bp).connect(gn).connect(ctx.destination); src.start(t,Math.random()*1.5,0.06);
+  const o=ctx.createOscillator(), g2=ctx.createGain(); o.type='triangle'; o.frequency.setValueAtTime(140,t); o.frequency.exponentialRampToValueAtTime(70,t+0.07);
+  g2.gain.setValueAtTime(0.18*loud,t); g2.gain.exponentialRampToValueAtTime(0.001,t+0.08); o.connect(g2).connect(ctx.destination); o.start(t); o.stop(t+0.09);
 }
 function bell(){
   if(!SND.ctx||!SND.on) return; const ctx=SND.ctx,t=ctx.currentTime;
@@ -495,7 +557,8 @@ function updateAudio(dt){
   SND.windGain.gain.setTargetAtTime(wind,t,0.1);
   SND.windFilt.frequency.setTargetAtTime(250+v*25,t,0.1);
   SND.brakeGain.gain.setTargetAtTime(run&&G.phase==='brake'&&v>2?0.05:0,t,0.1);
-  if(run&&G.phase==='lift'){ SND.clickT-=dt; if(SND.clickT<=0){ clack(); SND.clickT=0.9/CFG.liftSpeed; } }
+  SND.humGain.gain.setTargetAtTime(run&&G.phase==='lift'?0.12:0,t,0.15);   // チェーンを動かすモーターのうなり
+  if(run&&G.phase==='lift'){ SND.clickT-=dt; if(SND.clickT<=0){ clack(); SND.clickT=CFG.chainClickGap*Math.min(3.5,CFG.liftSpeed/Math.max(1,G.v)); } }   // 「トッ、トッ、トッ」。てっぺん近くで遅くなると間隔も広がる
 }
 
 // ============================================================
@@ -507,6 +570,8 @@ const G={
   phase:'ready', s:S.start, v:0, e:0, decel:0, a:0, gforce:1, gShow:1,
   paused:true, t:0, frames:0, elapsed:0,
   prediction:null, maxV:0, maxS:0, trail:[], letterV:{}, best:null,
+  game:'ride',   // 'ride'＝①のってみる / 'build'＝②つくってみる
+  dir:1, stalled:false, stallT:0, stallS:0, failed:false,
 };
 function setMode(m){
   document.body.classList.toggle('mode-big',m!=='ride');
@@ -514,7 +579,7 @@ function setMode(m){
   G.mode=m;
 }
 function resetRide(){
-  Object.assign(G,{resultWait:0,phase:'ready',s:S.start,v:0,e:CFG.g*sample(TR.Y,S.start),decel:0,a:0,gforce:1,gShow:1,t:0,maxV:0,maxS:0,trail:[],letterV:{},best:null});
+  Object.assign(G,{vs:0,dir:1,stalled:false,stallT:0,stallS:0,failed:false,resultWait:0,phase:'ready',s:S.start,v:0,e:CFG.g*sample(TR.Y,S.start),decel:0,a:0,gforce:1,gShow:1,t:0,maxV:0,maxS:0,trail:[],letterV:{},best:null});
   goBtn.disabled=false; goBtn.textContent='しゅっぱつ';
   setMode('predict'); renderLetters(); updateCaption(true);
 }
@@ -529,29 +594,51 @@ function step(dt){
   if(G.phase==='done'&&G.resultWait>0){ G.resultWait-=dt; if(G.resultWait<=0) showResult(); }
   if(G.phase==='ready'||G.phase==='done'){ G.v=0; G.a=0; }
   else if(G.phase==='lift'){
-    G.v=CFG.liftSpeed; G.a=0; G.s+=G.v*dt;
-    if(G.s>=S.liftEnd){ G.phase='free'; G.e=G.v*G.v/2+g*sample(TR.Y,G.s); }
-    else G.e=G.v*G.v/2+g*sample(TR.Y,G.s);
+    // てっぺんの手前でゆっくりにして、そっと送り出す
+    const rest=S.liftEnd-G.s;
+    G.v = rest<CFG.slowZone ? Math.max(CFG.crestSpeed, CFG.liftSpeed*rest/CFG.slowZone) : CFG.liftSpeed;
+    G.a=0; G.s+=G.v*dt;
+    if(G.s>=S.liftEnd){ G.phase='free'; G.v=CFG.crestSpeed; }
+    G.e=G.v*G.v/2+g*sample(TR.Y,G.s);
   } else {
-    if(G.phase==='free'&&G.s>=S.brake){ G.phase='brake'; G.decel=Math.max(0,(G.e-g*CFG.stopHeight)/(S.stop-G.s)); }
+    if(G.phase==='free'&&!G.stalled&&G.s>=S.brake){ G.phase='brake'; G.decel=Math.max(0,(G.e-g*CFG.stopHeight)/(S.stop-G.s)); }
     if(G.phase==='brake') G.e-=G.decel*G.v*dt;
-    G.s+=G.v*dt;
+    if(G.stalled){
+      // のぼれなかった後：坂の向きに引っぱられて戻り、ゆれが少しずつ小さくなる（エネルギーの式は折り返し点で止まってしまうので、ここは力で動かす）
+      G.stallT+=dt;
+      const damp=CFG.stallDamp*(1+G.stallT*0.2);
+      G.vs+=(-g*sample(TR.DY,G.s)-damp*G.vs)*dt;
+      G.s+=G.vs*dt;
+      if(G.s<S.liftEnd){ G.s=S.liftEnd; G.vs=Math.max(0,G.vs); }   // チェーンの区間には後ろ向きに入らない
+      G.v=Math.abs(G.vs); G.dir=G.vs<0?-1:1; G.a=0;
+      if(G.stallT>3&&((G.v<3&&Math.abs(sample(TR.DY,G.s))<0.05&&sample(TR.DDY,G.s)>0)||G.stallT>CFG.stallTime)){ G.v=0; G.vs=0; G.phase='done'; G.failed=true; finishRide(); }
+    } else {
+    const sPrev=G.s;
+    G.s+=G.dir*G.v*dt;
+    // チェーンの区間には後ろ向きに入らない（本物の逆走止めと同じ）
     const y=sample(TR.Y,G.s), k=2*(G.e-g*y);
-    let v=Math.sqrt(Math.max(0,k));
-    if(G.phase==='brake'&&S.stop-G.s<15) v=Math.max(v,1.2);   // 最後は止まりきるまでゆっくり進める（遊びやすさの補正）
-    if(G.phase==='free') v=Math.max(v,0.5);                     // 山の上で止まらないようにする補正
-    G.v=v; G.a=-g*sample(TR.DY,G.s)-(G.phase==='brake'?G.decel:0);
+    if(k<=0&&G.phase!=='brake'){
+      // 山をのぼりきれない → その場で向きが逆になる
+      G.s=sPrev; G.v=0; G.vs=0;
+      G.stalled=true; G.stallS=G.s; G.stallT=0;
+    } else {
+      let v=Math.sqrt(Math.max(0,k));
+      if(G.phase==='brake'&&S.stop-G.s<15) v=Math.max(v,1.2);   // 最後は止まりきるまでゆっくり進める（遊びやすさの補正）
+      G.v=v;
+    }
+    G.a=-g*sample(TR.DY,G.s)*G.dir-(G.phase==='brake'?G.decel:0);
     if(G.phase==='brake'&&G.s>=S.stop){ G.s=S.stop; G.v=0; G.phase='done'; G.e=g*CFG.stopHeight; finishRide(); }
+    }
   }
   // からだのおもさ（上下方向の見かけの重さ ÷ ふだんの重さ）
   const dy=sample(TR.DY,G.s), ddy=sample(TR.DDY,G.s);
   G.gforce=1+(ddy*G.v*G.v+dy*G.a)/g;
   // 記録
-  if(G.phase!=='ready'&&G.phase!=='done'){
+  if(G.phase!=='ready'&&G.phase!=='done'&&!G.stalled){
     if(G.v>G.maxV){ G.maxV=G.v; G.maxS=G.s; }
     for(const L of LETTERS) if(G.letterV[L.k]===undefined&&G.s>=L.s) G.letterV[L.k]=G.v;
     const last=G.trail[G.trail.length-1];
-    if(!last||G.s-last.s>1.5) G.trail.push({s:G.s,v:G.v});
+    if((!last||G.s-last.s>1.5)&&G.s<=TR.L) G.trail.push({s:G.s,v:G.v});
   }
   G.t+=dt;
 }
@@ -573,11 +660,12 @@ const goBtn=$('goBtn'), captionEl=$('caption');
 const R=(k,r)=>`<ruby>${k}<rt>${r}</rt></ruby>`;
 let lastCaptionKey='';
 function captionKey(){
-  if(G.phase==='ready') return G.prediction?'ready2':'ready';
+  if(G.phase==='ready') return G.game==='build'?'build':(G.prediction?'ready2':'ready');
+  if(G.stalled&&G.phase!=='done') return 'back';
   if(G.phase==='lift') return 'lift';
   if(G.phase==='brake') return 'brake';
   if(G.phase==='done') return G.resultWait>0?'goal':'done';
-  const dy=sample(TR.DY,G.s); return dy<-0.08?'down':(dy>0.08?'up':lastCaptionKey||'down');
+  const dy=sample(TR.DY,G.s)*G.dir; return dy<-0.08?'down':(dy>0.08?'up':lastCaptionKey||'down');
 }
 function updateCaption(force){
   const key=captionKey(); if(!force&&key===lastCaptionKey) return; lastCaptionKey=key;
@@ -589,7 +677,18 @@ function updateCaption(force){
   else if(key==='down') h=`くだる → <b style="color:var(--ke)">${hy}くなる</b>`;
   else if(key==='up') h=`のぼる → <b style="color:#8fbcff">おそくなる</b>`;
   else if(key==='brake') h=`ブレーキで とまる`;
-  else if(key==='goal') h=`ゴール！`;
+  else if(key==='goal') h= G.failed ? `とまった` : `ゴール！`;
+  else if(key==='build') h=`${R('山','やま')}の ${R('下','した')}の ↕ を ${R('上下','うえした')}に うごかして ${R('高','たか')}さを ${R('変','か')}えよう<br>ゴールまで いけるかな？`;
+  else if(key==='back') h=`のぼれない！ もどってくる`;
+  else if(key==='done'&&G.game==='build'){
+    if(G.failed){
+      let name='山', best=1e9;
+      for(const H of handleList()) if(H.label!=='スタート'){ const d=Math.abs(TR.uToS(H.u)-G.stallS); if(d<best){best=d; name=H.label;} }
+      h=`<b style="color:var(--total)">${name.replace('山',R('山','やま'))}</b> を こえられなかった<br>スタートより ${R('高','たか')}い ${R('山','やま')}は こえられない`;
+    } else {
+      h=`ゴールできた！<br>いちばん ${hy}かったのは ${R('時速','じそく')} <b style="color:var(--total)">${Math.round(G.maxV*3.6)}km</b>`;
+    }
+  }
   else if(key==='done'){
     let pr='';
     if(G.prediction) pr = G.prediction===G.best ? `よそう ${G.prediction} → <b style="color:#5be08f">せいかい！</b><br>` : `よそう ${G.prediction} → ざんねん<br>`;
@@ -611,15 +710,18 @@ const pc=$('profile'), pctx=pc.getContext('2d'), lettersEl=$('letters');
 let PW=0,PH=0, prof=[];
 const PAD={l:36,r:52,t:10,b:18};
 const px=(s)=>PAD.l+s/TR.L*(PW-PAD.l-PAD.r);
-const pyH=(y)=>PAD.t+(1-y/CFG.heightAxisMax)*(PH-PAD.t-PAD.b);
+const axisMax=()=>G.game==='build'?CFG.buildAxisMax:CFG.heightAxisMax;
+const pyH=(y)=>PAD.t+(1-y/axisMax())*(PH-PAD.t-PAD.b);
 const pyV=(kmh)=>PAD.t+(1-kmh/CFG.speedAxisMax)*(PH-PAD.t-PAD.b);
 function resizeProfile(){
   const r=pc.getBoundingClientRect(), d=Math.min(window.devicePixelRatio,2);
   if(r.width<10||r.height<10) return;
   PW=r.width; PH=r.height; pc.width=Math.round(PW*d); pc.height=Math.round(PH*d); pctx.setTransform(d,0,0,d,0,0);
-  prof=[]; for(let i=0;i<=400;i++){ const s=TR.L*i/400; prof.push([px(s),pyH(sample(TR.Y,s))]); }
+  recomputeProf();
   for(const L of LETTERS) if(L.btn) L.btn.style.left=px(L.s)+'px';
 }
+// 高さの山の形（ドラッグ中もすぐ反映できるよう、いまの profile から直接計算する）
+function recomputeProf(){ prof=[]; for(let i=0;i<=400;i++){ const s=TR.L*i/400; prof.push([px(s),pyH(profileY(sample(TR.U,s)))]); } }
 new ResizeObserver(resizeProfile).observe(pc);
 function drawProfile(){
   if(!PW) return;
@@ -627,18 +729,19 @@ function drawProfile(){
   const ride=G.mode==='ride';
   // 速さの線の見え方：走っている間は設定どおり、こたえあわせでは必ず表示
   c.font='12px "BIZ UDPGothic",sans-serif'; c.lineWidth=1;
-  for(const h of [0,10,20,30,40]){ const y=pyH(h); c.strokeStyle='rgba(255,255,255,.08)'; c.beginPath(); c.moveTo(PAD.l,y); c.lineTo(PW-PAD.r,y); c.stroke();
+  for(const h of (G.game==='build'?[0,10,20,30,40,50,60]:[0,10,20,30,40])){ const y=pyH(h); c.strokeStyle='rgba(255,255,255,.08)'; c.beginPath(); c.moveTo(PAD.l,y); c.lineTo(PW-PAD.r,y); c.stroke();
     if(!ride||h%20===0){ c.fillStyle='#b9c5de'; c.textAlign='right'; c.fillText(h+'m',PAD.l-5,y+4); } }
   if(G.trail.length>1){ c.fillStyle='#ffb185'; c.textAlign='left'; for(const k of (ride?[0,120]:[0,40,80,120])) c.fillText(k+'km',PW-PAD.r+5,pyV(k)+4); }
   // チェーンとブレーキ
   const band=(s0,s1,color,label)=>{ c.fillStyle=color; c.fillRect(px(s0),PH-PAD.b+3,px(s1)-px(s0),4); if(!ride){ c.textAlign='center'; c.fillText(label,(px(s0)+px(s1))/2,PH-1);} };
-  band(S.stationEnd,S.liftEnd,'#ffc531','チェーン'); band(S.brake,S.stop,'#ff8a3d','ブレーキ');
+  band(S.stationEnd,S.liftEnd,'#ffc531','チェーン'); band(S.brake,Math.min(S.stop,TR.L),'#ff8a3d','ブレーキ');
   // 高さの山
   c.beginPath(); c.moveTo(prof[0][0],pyH(0)); for(const [x,y] of prof) c.lineTo(x,y); c.lineTo(prof[prof.length-1][0],pyH(0)); c.closePath();
   c.fillStyle='rgba(142,163,199,.28)'; c.fill();
   c.beginPath(); prof.forEach(([x,y],i)=>i?c.lineTo(x,y):c.moveTo(x,y)); c.strokeStyle='#8ea3c7'; c.lineWidth=2.5; c.stroke();
+  if(G.game==='build') drawHandles(c);
   // A〜E の縦線（走っている間は小さな文字だけ）
-  for(const L of LETTERS){
+  if(G.game==='ride') for(const L of LETTERS){
     const x=px(L.s), yb=pyH(sample(TR.Y,L.s)), on=G.prediction===L.k;
     c.strokeStyle=on?'#ffd23f':'rgba(255,255,255,.3)'; c.setLineDash([3,3]); c.lineWidth=1.5;
     c.beginPath(); c.moveTo(x,ride?PAD.t+12:0); c.lineTo(x,yb); c.stroke(); c.setLineDash([]);
@@ -656,9 +759,78 @@ function drawProfile(){
   }
   if(G.phase==='done'&&G.maxV>0){ const x=px(G.maxS), y=pyV(G.maxV*3.6); c.fillStyle='#ff7a2f'; c.beginPath(); c.arc(x,y,6,0,Math.PI*2); c.fill(); }
   // 車両の位置
-  const x=px(G.s), y=pyH(sample(TR.Y,G.s));
+  const sd=G.s>TR.L?G.s-TR.L:G.s, x=px(sd), y=pyH(profileY(sample(TR.U,sd)));
   c.fillStyle='#ffd23f'; c.strokeStyle='#14213d'; c.lineWidth=2; c.beginPath(); c.arc(x,y,7,0,Math.PI*2); c.fill(); c.stroke();
 }
+// ②つくってみる：うごかせる点
+function handleList(){ return CFG.handles.map(([label,idx,min,max])=>({label,idx,min,max,u:idx.reduce((a,i)=>a+CFG.profile[i][0],0)/idx.length,h:CFG.profile[idx[0]][1]})); }
+let drag=null, dragY0=0, dragH0=0;
+// ●は山頂（いちばん高い所）を隠さないよう、少し下に置いて細い線でつなぐ
+function handleXY(H){ const x=px(TR.uToS(H.u)), py=pyH(H.h); return [x, Math.min(py+30, pyH(0)-17), py]; }
+function drawHandles(c){
+  const H0=handleList()[0];
+  // スタートの高さの線
+  const ys=pyH(H0.h); c.strokeStyle='rgba(255,210,63,.7)'; c.setLineDash([6,5]); c.lineWidth=1.5;
+  c.beginPath(); c.moveTo(PAD.l,ys); c.lineTo(PW-PAD.r,ys); c.stroke(); c.setLineDash([]);
+  c.fillStyle='#ffd23f'; c.font='12px "BIZ UDPGothic",sans-serif'; c.textAlign='right'; c.fillText('スタートの たかさ',PW-PAD.r,ys-5);
+  if(G.mode==='ride') return;
+  for(const H of handleList()){
+    const [x,y,py]=handleXY(H), on=drag&&drag.label===H.label;
+    // 上下の矢印（山頂の少し下）。ドラッグ中は黄色
+    const hh=15, hw=9, sw=3.5, ah=8;
+    c.beginPath();
+    c.moveTo(x,y-hh); c.lineTo(x+hw,y-hh+ah); c.lineTo(x+sw,y-hh+ah); c.lineTo(x+sw,y+hh-ah); c.lineTo(x+hw,y+hh-ah);
+    c.lineTo(x,y+hh); c.lineTo(x-hw,y+hh-ah); c.lineTo(x-sw,y+hh-ah); c.lineTo(x-sw,y-hh+ah); c.lineTo(x-hw,y-hh+ah); c.closePath();
+    c.fillStyle=on?'#ffd23f':'#3fcf86'; c.strokeStyle='#0b1a33'; c.lineWidth=2; c.lineJoin='round'; c.fill(); c.stroke();
+    c.font='bold 13px "BIZ UDPGothic",sans-serif'; c.textAlign='center'; c.fillStyle='#ffffff';
+    c.fillText(`${H.label} ${Math.round(H.h)}m`,x,py-10);
+  }
+}
+function setHandle(H,h){
+  h=Math.round(Math.max(H.min,Math.min(H.max,h)));
+  if(H.label!=='スタート'){ const P=CFG.profile, i=H.idx[0]; h=Math.max(h,Math.max(P[i-1][1],P[i+1][1])+3); }
+  for(const i of H.idx) CFG.profile[i][1]=h;
+  recomputeProf();
+}
+function canDrag(){ return G.game==='build'&&(G.phase==='ready'||(G.phase==='done'&&G.resultWait<=0)); }
+pc.addEventListener('pointerdown',e=>{
+  if(!canDrag()) return;
+  const r=pc.getBoundingClientRect(), x=e.clientX-r.left, y=e.clientY-r.top;
+  let best=null, bd=36;
+  for(const H of handleList()){ const [hx,hy,py]=handleXY(H); const d=Math.min(Math.hypot(hx-x,hy-y),Math.hypot(hx-x,py-y)); if(d<bd){bd=d;best=H;} }
+  if(!best) return;
+  dragY0=y; dragH0=best.h;
+  if(G.phase==='done') resetRide();
+  drag=best; pc.setPointerCapture(e.pointerId); e.preventDefault();
+});
+pc.addEventListener('pointermove',e=>{
+  if(!drag) return;
+  const r=pc.getBoundingClientRect(), y=e.clientY-r.top;
+  const h=dragH0-(y-dragY0)/(PH-PAD.t-PAD.b)*axisMax();
+  setHandle(drag,h); drag=handleList().find(H=>H.label===drag.label);
+});
+const endDrag=()=>{ if(!drag) return; drag=null; rebuildCourse(); };
+pc.addEventListener('pointerup',endDrag); pc.addEventListener('pointercancel',endDrag);
+
+function rebuildCourse(){
+  TR=buildTrack(); computeS();
+  for(const L of LETTERS){ L.s=TR.uToS(L.u); frameAt(L.s,fr); L.base=fr.p.clone(); L.pole.position.copy(fr.p).add(_v1.set(0,CFG.letterPoleY,0)); }
+  buildTrackMeshes(); resizeProfile(); resetRide();
+}
+function setGame(g){
+  if(G.phase!=='ready'&&G.phase!=='done') return;
+  G.game=g; document.body.classList.toggle('game-build',g==='build');
+  document.querySelectorAll('#gameTabs button').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.game===g)));
+  CFG.profile = g==='build' ? buildProfile : PROFILE_DEFAULT;
+  G.prediction=null;
+  for(const L of LETTERS){ L.sprite.visible=L.pole.visible=(g==='ride'); }
+  rebuildCourse();
+}
+function resetBuild(){
+  if(G.game!=='build') return;
+  buildProfile=PROFILE_DEFAULT.map(p=>[...p]); CFG.profile=buildProfile; rebuildCourse();
+}
+
 function renderLetters(){
   for(const L of LETTERS){
     if(!L.btn){
@@ -689,7 +861,7 @@ function placeCars(dt=1/60){
   cars.forEach((car,i)=>{ frameAt(G.s-i*CFG.carGap*carScale,fc); m4.makeBasis(fc.b,fc.n,fc.t); car.quaternion.setFromRotationMatrix(m4); car.position.copy(fc.p); car.scale.setScalar(carScale); });
   frameAt(G.s,fc);
   // A〜E の目印も遠いときは大きく
-  for(const L of LETTERS){ const k=camMode==='all'?Math.max(1,camera.position.distanceTo(L.base)/90):1; L.sprite.scale.set(6*k,6*k,1); L.sprite.position.copy(L.base).add(_v1.set(0,9+3*(k-1),0)); }
+  for(const L of LETTERS){ const k=camMode==='all'?Math.max(1,camera.position.distanceTo(L.base)/90):1; L.sprite.scale.set(6*k,6*k,1); L.sprite.position.copy(L.base).add(_v1.set(0,CFG.letterY+3*(k-1),0)); }
 }
 
 function advance(dt){
@@ -701,6 +873,7 @@ function loop(now){
   let dt=(now-lastT)/1000; lastT=now; dt=Math.min(Math.max(dt,0),1/30);
   G.frames++;
   if(!G.paused){ G.elapsed+=dt; advance(dt); }
+  cloudGroup.rotation.y+=dt*0.004;   // 雲がゆっくり流れる
   placeCars(dt); updateCamera(dt); updateHUD(dt); drawProfile(); updateAudio(dt);
   renderer.render(scene,camera);
   requestAnimationFrame(loop);
@@ -715,6 +888,8 @@ window.addEventListener('resize',onResize);
 // ボタン類
 // ============================================================
 goBtn.addEventListener('click',startRide);
+document.querySelectorAll('#gameTabs button').forEach(b=>b.addEventListener('click',()=>setGame(b.dataset.game)));
+$('resetBuild').addEventListener('click',resetBuild);
 document.querySelectorAll('#camSeg button').forEach(b=>b.addEventListener('click',()=>setCamera(b.dataset.cam)));
 $('soundBtn').addEventListener('click',(e)=>{ SND.on=!SND.on; e.currentTarget.setAttribute('aria-pressed',String(SND.on)); e.currentTarget.textContent=SND.on?'おと：オン':'おと：オフ'; });
 const LINE_LABEL={show:'あり',faint:'うすく',hide:'なし'};
@@ -743,12 +918,14 @@ document.addEventListener('dblclick',e=>e.preventDefault());
 //   G.phase: 'ready' → 'lift'（チェーン）→ 'free' → 'brake' → 'done'
 // ============================================================
 window.__game={
-  state:G, cars, camera, track:TR, points:S, letters:LETTERS, CFG,
+  state:G, cars, camera, get track(){ return TR; }, points:S, letters:LETTERS, CFG,
   api:{
     tick(n=1,dt=1/60){ for(let i=0;i<n;i++){ G.frames++; G.elapsed+=dt; advance(dt); } placeCars(); updateHUD(dt); return G; },
-    getState(){ const y=sample(TR.Y,G.s); return {mode:G.mode,phase:G.phase,s:G.s,v:G.v,kmh:G.v*3.6,height:y,pe:CFG.g*y,ke:G.v*G.v/2,gforce:G.gforce,prediction:G.prediction,best:G.best,letterV:{...G.letterV},frames:G.frames,elapsed:G.elapsed}; },
+    getState(){ const y=sample(TR.Y,G.s); return {game:G.game,mode:G.mode,phase:G.phase,dir:G.dir,stalled:G.stalled,failed:G.failed,maxKmh:G.maxV*3.6,s:G.s,v:G.v,kmh:G.v*3.6,height:y,pe:CFG.g*y,ke:G.v*G.v/2,gforce:G.gforce,prediction:G.prediction,best:G.best,letterV:{...G.letterV},frames:G.frames,elapsed:G.elapsed}; },
     start:startRide, reset:resetRide, predict(k){ if(G.phase==='ready'){ G.prediction=k; renderLetters(); updateCaption(true);} },
-    setCamera, closeHelp, openHelp, setGraphRide,
+    setCamera, closeHelp, openHelp, setGraphRide, setGame, resetBuild,
+    // つくってみる：i=0 スタート, 1〜3 山。高さ h(m) にしてコースを作り直す
+    setHandle(i,h){ setHandle(handleList()[i],h); rebuildCourse(); },
   },
 };
 
