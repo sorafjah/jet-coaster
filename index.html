@@ -1,0 +1,773 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
+<title>ジェットコースターとエネルギー</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=BIZ+UDPGothic:wght@400;700&display=swap">
+<style>
+/* レイアウト：3Dの景色を全面に。左上＝速さ、右上＝エネルギー、下＝高さと速さのグラフ＋操作 */
+:root{
+  --sky:#0b1a33;
+  --panel:rgba(14,26,50,.88);
+  --panel-line:rgba(255,255,255,.14);
+  --ink:#ffffff;
+  --muted:#b9c5de;
+  --pe:#3d8bfd;      /* 位置エネルギー（青） */
+  --ke:#ff7a2f;      /* 運動エネルギー（オレンジ） */
+  --total:#ffd23f;   /* 合計（黄） */
+  --go:#17a861;
+  --warn:#e8384f;
+  --font:"BIZ UDPGothic","Hiragino Kaku Gothic ProN","Hiragino Sans",Meiryo,sans-serif;
+  color-scheme:dark;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+[hidden]{display:none!important}
+html,body{height:100%;margin:0;overflow:hidden;background:var(--sky);color:var(--ink);font-family:var(--font);
+  touch-action:manipulation;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;overscroll-behavior:none}
+#view{position:fixed;inset:0}
+#view canvas{display:block;width:100%;height:100%;touch-action:none}
+rt{font-size:.5em;font-weight:400;letter-spacing:0}
+button{font-family:var(--font);color:var(--ink);cursor:pointer;border:none}
+button:focus-visible{outline:3px solid var(--total);outline-offset:2px}
+.panel{background:var(--panel);border:1px solid var(--panel-line);border-radius:14px;backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)}
+
+/* 速さ */
+#speedPanel{position:fixed;left:calc(12px + env(safe-area-inset-left,0px));top:calc(12px + env(safe-area-inset-top,0px));padding:10px 16px 12px;min-width:200px}
+#speedPanel .lab{font-size:15px;color:var(--muted)}
+#speedPanel .big{display:flex;align-items:baseline;gap:6px;line-height:1}
+#speedNum{font-size:64px;font-weight:700;font-variant-numeric:tabular-nums;min-width:2.2ch;text-align:right;color:var(--ke)}
+#speedPanel .unit{font-size:22px;font-weight:700}
+#speedPanel .sub{display:flex;gap:16px;margin-top:6px;font-size:16px;font-variant-numeric:tabular-nums}
+#speedPanel .sub b{font-size:20px}
+
+/* エネルギー */
+#energyPanel{position:fixed;right:calc(12px + env(safe-area-inset-right,0px));top:calc(70px + env(safe-area-inset-top,0px));padding:10px 14px 12px;width:236px}
+#energyPanel h2{margin:0 0 6px;font-size:15px;font-weight:700;color:var(--muted)}
+.bars{display:flex;justify-content:space-between;align-items:flex-end;height:150px;padding:0 4px;border-bottom:2px solid var(--panel-line);gap:10px}
+.bar{position:relative;flex:1;height:100%;background:rgba(255,255,255,.06);border-radius:6px 6px 0 0;overflow:hidden}
+.bar i{position:absolute;left:0;right:0;bottom:0;height:0;display:block}
+#barPE i{background:var(--pe)}
+#barKE i{background:var(--ke)}
+#barTot .pe{background:var(--pe)}
+#barTot .ke{background:var(--ke)}
+#barTot{outline:2px dashed var(--total);outline-offset:-2px}
+.barlabs{display:flex;justify-content:space-between;gap:10px;margin-top:4px;padding:0 4px}
+.barlabs span{flex:1;text-align:center;font-size:13px;line-height:1.5}
+.barlabs .p{color:#8fbcff}.barlabs .k{color:#ffb185}.barlabs .t{color:var(--total)}
+#gBox{margin-top:12px}
+#gBox .row{display:flex;justify-content:space-between;font-size:13px;color:var(--muted)}
+#gBox .row b{color:var(--ink);font-size:15px;font-variant-numeric:tabular-nums}
+#gTrack{position:relative;height:22px;margin-top:4px;border-radius:11px;background:linear-gradient(90deg,#7fd3ff 0%,#d7e3f5 33%,#d7e3f5 40%,#ff9a6b 100%)}
+#gTrack .one{position:absolute;left:33.3%;top:-3px;bottom:-3px;width:2px;background:#22324f}
+#gNeedle{position:absolute;top:-5px;width:6px;height:32px;margin-left:-3px;border-radius:3px;background:#fff;box-shadow:0 0 0 2px #0b1a33;left:33.3%}
+#gWord{text-align:center;font-size:17px;font-weight:700;margin-top:6px;min-height:1.3em}
+
+/* 上の案内 */
+#caption{position:fixed;left:50%;top:calc(12px + env(safe-area-inset-top,0px));transform:translateX(-50%);max-width:min(560px,calc(100vw - 560px));padding:10px 18px;font-size:18px;line-height:1.7;text-align:center}
+#caption:empty{display:none}
+
+/* ？とバージョン */
+#helpBtn{position:fixed;right:calc(12px + env(safe-area-inset-right,0px));top:calc(12px + env(safe-area-inset-top,0px));width:48px;height:48px;border-radius:24px;font-size:26px;font-weight:700;background:var(--panel);border:1px solid var(--panel-line)}
+#ver{position:fixed;right:calc(68px + env(safe-area-inset-right,0px));top:calc(26px + env(safe-area-inset-top,0px));font-size:11px;color:var(--muted);opacity:.8}
+
+/* 下のパネル */
+#bottom{position:fixed;left:calc(12px + env(safe-area-inset-left,0px));right:calc(12px + env(safe-area-inset-right,0px));bottom:calc(12px + env(safe-area-inset-bottom,0px));display:flex;gap:10px;align-items:stretch}
+#controls{width:240px;flex:none;padding:10px;display:flex;flex-direction:column;gap:8px}
+#goBtn{height:64px;border-radius:12px;background:var(--go);font-size:24px;font-weight:700;box-shadow:0 4px 0 #0c6f3f}
+#goBtn:active{transform:translateY(2px);box-shadow:0 2px 0 #0c6f3f}
+#goBtn[disabled]{background:#3b4a66;box-shadow:0 4px 0 #26324a;color:var(--muted)}
+.seg{display:flex;gap:4px}
+.seg button{flex:1;min-height:48px;border-radius:10px;background:rgba(255,255,255,.08);font-size:14px;white-space:nowrap;font-weight:700;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px}
+.seg button svg{width:22px;height:22px}
+.seg button[aria-pressed="true"]{background:#fff;color:#0b1a33}
+.seg.small button{min-height:44px;font-size:13px}
+#profileBox{flex:1;min-width:0;padding:6px 10px 8px;position:relative;display:flex;flex-direction:column}
+#profileHead{display:flex;justify-content:space-between;align-items:center;font-size:13px;color:var(--muted);gap:10px;flex-wrap:wrap}
+#profileHead .lg{display:flex;gap:14px;align-items:center}
+#profileHead .lg span{display:flex;align-items:center;gap:5px}
+#profileHead .sw{width:18px;height:10px;border-radius:2px;display:inline-block}
+#letters{position:relative;height:56px;margin-top:2px}
+.letter{position:absolute;top:0;width:48px;height:54px;margin-left:-24px;border-radius:12px;background:rgba(255,255,255,.12);border:2px solid rgba(255,255,255,.35);display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1.05}
+.letter b{font-size:24px}
+.letter small{font-size:11px;color:var(--total);font-variant-numeric:tabular-nums;min-height:1em}
+.letter[aria-pressed="true"]{background:var(--total);color:#0b1a33;border-color:#fff}
+.letter[aria-pressed="true"] small{color:#0b1a33}
+.letter.best{box-shadow:0 0 0 4px var(--ke)}
+#profile{width:100%;height:130px;display:block}
+
+/* 説明画面 */
+#help{position:fixed;inset:0;background:rgba(6,14,30,.78);display:flex;align-items:center;justify-content:center;padding:16px;z-index:10}
+#help .card{background:#f7f9fd;color:#14213d;border-radius:20px;max-width:880px;width:100%;max-height:calc(100% - 8px);overflow:auto;padding:22px 26px 20px;-webkit-overflow-scrolling:touch}
+#help h1{margin:0 0 4px;font-size:30px;text-wrap:balance}
+#help .lead{margin:0 0 14px;font-size:17px;line-height:1.9}
+#help .grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+#help .item{display:flex;gap:12px;align-items:flex-start;background:#fff;border:1px solid #dde4f0;border-radius:14px;padding:12px}
+#help .item svg{flex:none;width:92px;height:72px}
+#help .item h3{margin:0 0 2px;font-size:18px}
+#help .item p{margin:0;font-size:15px;line-height:1.9}
+#help .foot{display:flex;justify-content:center;margin-top:16px}
+#startBtn{min-width:240px;height:64px;border-radius:32px;background:var(--go);font-size:26px;font-weight:700;box-shadow:0 4px 0 #0c6f3f}
+.pe-t{color:#1f6fe0;font-weight:700}.ke-t{color:#e0601a;font-weight:700}.tot-t{color:#a37c00;font-weight:700}
+
+.simple .detail{display:none!important}
+
+@media (max-width:900px){
+  #bottom{flex-direction:column}
+  #controls{width:auto;flex-direction:row;align-items:stretch}
+  #goBtn{flex:0 0 190px;height:auto;min-height:56px}
+  #camSeg{flex:1.5}
+  .seg.small{flex:1}
+  #caption{top:auto;bottom:calc(330px + env(safe-area-inset-bottom,0px));max-width:calc(100vw - 32px);font-size:16px}
+  #help .grid{grid-template-columns:1fr}
+}
+@media (max-width:700px){
+  #bottom{flex-direction:column}
+  #controls{flex-wrap:wrap}
+  #goBtn{flex:1 1 100%}
+  .seg{flex:1}
+  #energyPanel{width:180px;top:auto;bottom:calc(330px + env(safe-area-inset-bottom,0px))}
+  .bars{height:90px}
+  #speedNum{font-size:44px}
+  #caption{bottom:calc(330px + env(safe-area-inset-bottom,0px))}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.169.0/build/three.module.js",
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.169.0/examples/jsm/"
+  }
+}
+</script>
+</head>
+<body>
+<!-- build: 2026-10-04 -->
+<div id="view"></div>
+
+<div id="speedPanel" class="panel" aria-live="off">
+  <div class="lab"><ruby>速<rt>はや</rt></ruby>さ（<ruby>時速<rt>じそく</rt></ruby>）</div>
+  <div class="big"><span id="speedNum">0</span><span class="unit">km</span></div>
+  <div class="sub">
+    <span class="detail"><ruby>秒速<rt>びょうそく</rt></ruby> <b id="speedMs">0.0</b> m</span>
+    <span><ruby>高<rt>たか</rt></ruby>さ <b id="heightNum">0</b> m</span>
+  </div>
+</div>
+
+<div id="energyPanel" class="panel">
+  <h2>エネルギー</h2>
+  <div class="bars">
+    <div class="bar" id="barPE"><i></i></div>
+    <div class="bar" id="barKE"><i></i></div>
+    <div class="bar" id="barTot"><i class="ke"></i><i class="pe"></i></div>
+  </div>
+  <div class="barlabs">
+    <span class="p"><ruby>位置<rt>いち</rt></ruby></span>
+    <span class="k"><ruby>運動<rt>うんどう</rt></ruby></span>
+    <span class="t"><ruby>合計<rt>ごうけい</rt></ruby></span>
+  </div>
+  <div id="gBox">
+    <div class="row"><span>からだの おもさ</span><b class="detail" id="gNum">×1.0</b></div>
+    <div id="gTrack"><div class="one"></div><div id="gNeedle"></div></div>
+    <div class="row"><span>ふわっ</span><span>ふつう</span><span></span><span>ぐっ</span></div>
+    <div id="gWord"></div>
+  </div>
+</div>
+
+<div id="caption" class="panel"></div>
+
+<button id="helpBtn" aria-label="あそびかた">？</button>
+<div id="ver">v2026-10-04</div>
+
+<div id="bottom">
+  <div id="controls" class="panel">
+    <button id="goBtn">しゅっぱつ</button>
+    <div class="seg" id="camSeg">
+      <button data-cam="ride" aria-pressed="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z"/></svg>のる</button>
+      <button data-cam="side" aria-pressed="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="9" width="12" height="7" rx="2"/><path d="M15 12h6M18 9l3 3-3 3"/></svg>よこ</button>
+      <button data-cam="all" aria-pressed="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 18c3-10 6-10 8-4s5 6 10-8"/></svg>ぜんたい</button>
+    </div>
+    <div class="seg small">
+      <button id="soundBtn" aria-pressed="true">おと：オン</button>
+      <button id="simpleBtn" aria-pressed="false">かんたん</button>
+    </div>
+  </div>
+  <div id="profileBox" class="panel">
+    <div id="profileHead">
+      <span>コースの <ruby>高<rt>たか</rt></ruby>さ と <ruby>速<rt>はや</rt></ruby>さ</span>
+      <span class="lg">
+        <span><i class="sw" style="background:#8ea3c7"></i><ruby>高<rt>たか</rt></ruby>さ</span>
+        <span><i class="sw" style="background:var(--ke)"></i><ruby>速<rt>はや</rt></ruby>さ</span>
+      </span>
+    </div>
+    <div id="letters"></div>
+    <canvas id="profile"></canvas>
+  </div>
+</div>
+
+<div id="help" role="dialog" aria-modal="true" aria-labelledby="helpTitle">
+  <div class="card">
+    <h1 id="helpTitle">ジェットコースターと エネルギー</h1>
+    <p class="lead">ジェットコースターに のって、<ruby>速<rt>はや</rt></ruby>さ と <span class="pe-t"><ruby>位置<rt>いち</rt></ruby>エネルギー</span>・<span class="ke-t"><ruby>運動<rt>うんどう</rt></ruby>エネルギー</span> の <ruby>変<rt>か</rt></ruby>わり<ruby>方<rt>かた</rt></ruby>を <ruby>調<rt>しら</rt></ruby>べよう。</p>
+    <div class="grid">
+      <div class="item">
+        <svg viewBox="0 0 92 72"><path d="M4 60 L18 60 L30 14 L40 14 L52 64 L64 40 L76 56 L88 56" fill="none" stroke="#5b6f94" stroke-width="3"/><circle cx="52" cy="40" r="13" fill="#ffd23f" stroke="#14213d" stroke-width="2"/><text x="52" y="46" text-anchor="middle" font-size="17" font-weight="700" fill="#14213d">B</text><path d="M66 22 l-8 10" stroke="#14213d" stroke-width="3" stroke-linecap="round"/><circle cx="68" cy="19" r="5" fill="#f2c9a8" stroke="#14213d" stroke-width="2"/></svg>
+        <div><h3>1. よそうする</h3><p><ruby>下<rt>した</rt></ruby>の グラフの <b>A〜E</b> から、いちばん <ruby>速<rt>はや</rt></ruby>く なる ところを タップ。</p></div>
+      </div>
+      <div class="item">
+        <svg viewBox="0 0 92 72"><rect x="6" y="20" width="80" height="34" rx="9" fill="#17a861"/><text x="46" y="43" text-anchor="middle" font-size="15" font-weight="700" fill="#fff">しゅっぱつ</text></svg>
+        <div><h3>2. しゅっぱつ</h3><p>ボタンを <ruby>押<rt>お</rt></ruby>すと <ruby>走<rt>はし</rt></ruby>りだす。チェーンで いちばん <ruby>高<rt>たか</rt></ruby>い ところまで <ruby>上<rt>あ</rt></ruby>がるよ。</p></div>
+      </div>
+      <div class="item">
+        <svg viewBox="0 0 92 72"><rect x="4" y="22" width="26" height="28" rx="6" fill="#14213d"/><text x="17" y="41" text-anchor="middle" font-size="11" font-weight="700" fill="#fff">のる</text><rect x="33" y="22" width="26" height="28" rx="6" fill="#14213d"/><text x="46" y="41" text-anchor="middle" font-size="11" font-weight="700" fill="#fff">よこ</text><rect x="62" y="22" width="26" height="28" rx="6" fill="#14213d"/><text x="75" y="41" text-anchor="middle" font-size="9" font-weight="700" fill="#fff">ぜんたい</text></svg>
+        <div><h3>3. <ruby>見<rt>み</rt></ruby>る <ruby>場所<rt>ばしょ</rt></ruby>を かえる</h3><p>「のる」で ジェットコースターに のった <ruby>目線<rt>めせん</rt></ruby>。「ぜんたい」は <ruby>指<rt>ゆび</rt></ruby>で うごかせる。</p></div>
+      </div>
+      <div class="item">
+        <svg viewBox="0 0 92 72"><rect x="8" y="30" width="18" height="34" fill="#3d8bfd"/><rect x="36" y="44" width="18" height="20" fill="#ff7a2f"/><rect x="64" y="10" width="18" height="20" fill="#ff7a2f"/><rect x="64" y="30" width="18" height="34" fill="#3d8bfd"/><rect x="63" y="9" width="20" height="56" fill="none" stroke="#c99a00" stroke-width="2" stroke-dasharray="4 3"/></svg>
+        <div><h3>4. エネルギーの グラフ</h3><p><span class="pe-t"><ruby>位置<rt>いち</rt></ruby></span>：<ruby>高<rt>たか</rt></ruby>いほど <ruby>大<rt>おお</rt></ruby>きい　<span class="ke-t"><ruby>運動<rt>うんどう</rt></ruby></span>：<ruby>速<rt>はや</rt></ruby>いほど <ruby>大<rt>おお</rt></ruby>きい<br><span class="tot-t"><ruby>合計<rt>ごうけい</rt></ruby></span>は どう なるかな？</p></div>
+      </div>
+      <div class="item">
+        <svg viewBox="0 0 92 72"><defs><linearGradient id="hg" x1="0" x2="1"><stop offset="0" stop-color="#7fd3ff"/><stop offset=".4" stop-color="#d7e3f5"/><stop offset="1" stop-color="#ff9a6b"/></linearGradient></defs><rect x="6" y="30" width="80" height="14" rx="7" fill="url(#hg)"/><rect x="22" y="24" width="5" height="26" rx="2" fill="#14213d"/><text x="10" y="64" font-size="11" fill="#14213d">ふわっ</text><text x="66" y="64" font-size="11" fill="#14213d">ぐっ</text></svg>
+        <div><h3>5. からだの おもさ</h3><p><ruby>山<rt>やま</rt></ruby>の <ruby>上<rt>うえ</rt></ruby>では ふわっ、<ruby>谷<rt>たに</rt></ruby>では ぐっと おされる。<ruby>本物<rt>ほんもの</rt></ruby>に のったら たしかめよう。</p></div>
+      </div>
+      <div class="item">
+        <svg viewBox="0 0 92 72"><circle cx="46" cy="36" r="24" fill="#14213d"/><text x="46" y="46" text-anchor="middle" font-size="30" font-weight="700" fill="#fff">？</text></svg>
+        <div><h3>6. こまったら</h3><p><ruby>右上<rt>みぎうえ</rt></ruby>の「？」で この <ruby>説明<rt>せつめい</rt></ruby>が <ruby>出<rt>で</rt></ruby>るよ。<ruby>見<rt>み</rt></ruby>ている <ruby>間<rt>あいだ</rt></ruby>は ストップ。</p></div>
+      </div>
+    </div>
+    <div class="foot"><button id="startBtn">はじめる</button></div>
+  </div>
+</div>
+
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+// ============================================================
+// 設定（数値はここだけ直せば調整できます）
+// ============================================================
+const CFG = {
+  g: 9.8,                 // 重力加速度 m/s²
+  liftSpeed: 8,           // チェーンで上がる速さ m/s
+  timeScale: 1.0,         // 全体の時間の速さ（1=実際と同じ）
+  carCount: 3,            // 車両の数
+  carGap: 4.2,            // 車両の間隔 m
+  // コースを上から見た形（x, z）。閉じた輪になります
+  plan: [[0,0],[110,-10],[170,40],[150,120],[60,150],[-40,130],[-130,150],[-190,90],[-170,10],[-90,-20]],
+  // コースの高さ [位置(0〜1), 高さm]。点と点の間はなめらかにつなぎます
+  profile: [[0.00,3],[0.04,3],[0.15,42],[0.165,42],[0.27,1],[0.36,26],[0.45,10],[0.53,22],[0.62,12],[0.70,16],[0.80,3],[1.00,3]],
+  liftEndU: 0.165,        // チェーン区間の終わり
+  brakeStartU: 0.70,      // ブレーキ区間の始まり
+  stopU: 0.985,           // 止まる位置（えき）
+  startU: 0.012,          // 出発位置
+  stationEndU: 0.04,
+  stopHeight: 3,          // えきの高さ m
+  // よそうのポイント [記号, 位置u]
+  letters: [['A',0.157],['B',0.27],['C',0.36],['D',0.45],['E',0.53]],
+  barMaxH: 46,            // エネルギー棒グラフの最大（この高さの位置エネルギー＝満タン）
+  speedAxisMax: 120,      // 下のグラフの速さの最大 km/h
+  simple: false,          // true にすると かんたん表示で始まる
+};
+
+// ============================================================
+// コースをつくる
+// ============================================================
+function profileY(u){
+  const P = CFG.profile;
+  for (let i=0;i<P.length-1;i++){
+    const [u0,y0]=P[i],[u1,y1]=P[i+1];
+    if (u<=u1){ const t=(u-u0)/(u1-u0); return y0+(y1-y0)*(1-Math.cos(Math.PI*t))/2; }
+  }
+  return P[P.length-1][1];
+}
+function buildTrack(N=3000){
+  const plan = new THREE.CatmullRomCurve3(CFG.plan.map(([x,z])=>new THREE.Vector3(x,0,z)), true, 'centripetal');
+  const M=6000, raw=[];
+  for (let i=0;i<=M;i++){ const u=i/M; const p=plan.getPointAt(u%1); p.y=profileY(u); raw.push({p,u}); }
+  const cum=[0]; for (let i=1;i<=M;i++) cum.push(cum[i-1]+raw[i].p.distanceTo(raw[i-1].p));
+  const L=cum[M], ds=L/N;
+  const P=[],U=[],Y=[]; let j=0;
+  for (let i=0;i<=N;i++){
+    const s=ds*i; while(j<M-1&&cum[j+1]<s) j++;
+    const t=(s-cum[j])/(cum[j+1]-cum[j]);
+    const p=raw[j].p.clone().lerp(raw[j+1].p,t);
+    P.push(p); U.push(raw[j].u+(raw[j+1].u-raw[j].u)*t); Y.push(p.y);
+  }
+  // 傾き・曲がり（高さの1回・2回微分）。2回微分は少しならして「からだのおもさ」をなめらかにする
+  const DY=[],DDY0=[],DDY=[];
+  for (let i=0;i<=N;i++){
+    const a=Y[Math.max(0,i-1)],b=Y[i],c=Y[Math.min(N,i+1)];
+    DY.push((c-a)/(2*ds)); DDY0.push(i>0&&i<N?(c-2*b+a)/(ds*ds):0);
+  }
+  const W=20; for (let i=0;i<=N;i++){ let sm=0,n=0; for(let k=-W;k<=W;k++){const v=DDY0[i+k]; if(v!==undefined){sm+=v;n++;}} DDY.push(sm/n); }
+  // 向き（T=進む向き, B=横, Nu=上）
+  const T=[],B=[],Nu=[], up=new THREE.Vector3(0,1,0);
+  for (let i=0;i<=N;i++){
+    const a=P[Math.max(0,i-1)], c=P[Math.min(N,i+1)];
+    const t=c.clone().sub(a).normalize();
+    const b=new THREE.Vector3().crossVectors(up,t).normalize();   // 右手系：b×n=t になるように
+    T.push(t); B.push(b); Nu.push(new THREE.Vector3().crossVectors(t,b).normalize());
+  }
+  const uToS=(u)=>{ for(let i=0;i<=N;i++) if(U[i]>=u) return i*ds; return L; };
+  return {N,L,ds,P,U,Y,DY,DDY,T,B,Nu,uToS};
+}
+const TR = buildTrack();
+const S = {
+  start: TR.uToS(CFG.startU), liftEnd: TR.uToS(CFG.liftEndU), brake: TR.uToS(CFG.brakeStartU),
+  stop: TR.uToS(CFG.stopU), stationEnd: TR.uToS(CFG.stationEndU),
+};
+const LETTERS = CFG.letters.map(([k,u])=>({k, s:TR.uToS(u)}));
+
+function sample(arr, s){
+  const f=Math.max(0,Math.min(TR.N,s/TR.ds)); const i=Math.min(TR.N-1,Math.floor(f)), t=f-i;
+  return arr[i]+(arr[i+1]-arr[i])*t;
+}
+const _v1=new THREE.Vector3(), _v2=new THREE.Vector3();
+function frameAt(s, out){
+  s=((s%TR.L)+TR.L)%TR.L;
+  const f=s/TR.ds; const i=Math.min(TR.N-1,Math.floor(f)), t=f-i;
+  out.p.copy(TR.P[i]).lerp(TR.P[i+1],t);
+  out.t.copy(TR.T[i]).lerp(TR.T[i+1],t).normalize();
+  out.b.crossVectors(_v1.set(0,1,0),out.t).normalize();
+  out.n.crossVectors(out.t,out.b).normalize();
+  return out;
+}
+const mkFrame=()=>({p:new THREE.Vector3(),t:new THREE.Vector3(),b:new THREE.Vector3(),n:new THREE.Vector3()});
+
+// ============================================================
+// 3Dの景色
+// ============================================================
+const view=document.getElementById('view');
+const renderer=new THREE.WebGLRenderer({antialias:true});
+renderer.setPixelRatio(Math.min(window.devicePixelRatio,2));
+renderer.outputColorSpace=THREE.SRGBColorSpace;
+view.appendChild(renderer.domElement);
+const scene=new THREE.Scene();
+const camera=new THREE.PerspectiveCamera(60,1,0.1,3000);
+
+function canvasTex(w,h,draw){ const c=document.createElement('canvas'); c.width=w;c.height=h; draw(c.getContext('2d'),w,h); const t=new THREE.CanvasTexture(c); t.colorSpace=THREE.SRGBColorSpace; return t; }
+
+// 空
+scene.background=canvasTex(4,256,(g,w,h)=>{const gr=g.createLinearGradient(0,0,0,h);gr.addColorStop(0,'#3c7fd6');gr.addColorStop(.55,'#9fd0f5');gr.addColorStop(1,'#e8f4ff');g.fillStyle=gr;g.fillRect(0,0,w,h);});
+scene.fog=new THREE.Fog(0xcfe6fa,250,900);
+scene.add(new THREE.HemisphereLight(0xdff0ff,0x5d7a3a,1.1));
+const sun=new THREE.DirectionalLight(0xffffff,1.6); sun.position.set(120,200,80); scene.add(sun);
+
+// 地面
+let seed=7; const rnd=()=>{seed=(seed*16807)%2147483647;return (seed-1)/2147483646;};
+const grassTex=canvasTex(256,256,(g,w,h)=>{g.fillStyle='#6fae4c';g.fillRect(0,0,w,h);for(let i=0;i<2500;i++){g.fillStyle=`hsl(${95+rnd()*20},${40+rnd()*20}%,${32+rnd()*20}%)`;g.fillRect(rnd()*w,rnd()*h,2,2+rnd()*3);}});
+grassTex.wrapS=grassTex.wrapT=THREE.RepeatWrapping; grassTex.repeat.set(80,80);
+const ground=new THREE.Mesh(new THREE.PlaneGeometry(2400,2400),new THREE.MeshLambertMaterial({map:grassTex}));
+ground.rotation.x=-Math.PI/2; scene.add(ground);
+// コースの下の広場
+const plaza=new THREE.Mesh(new THREE.CircleGeometry(1,64),new THREE.MeshLambertMaterial({color:0xd9c8a4}));
+plaza.rotation.x=-Math.PI/2; plaza.scale.set(230,120,1); plaza.position.set(-10,0.05,65); scene.add(plaza);
+
+// レール
+function offsetCurve(off){
+  const pts=[]; for(let i=0;i<TR.N;i+=3){ pts.push(TR.P[i].clone().addScaledVector(TR.B[i],off[0]).addScaledVector(TR.Nu[i],off[1])); }
+  return new THREE.CatmullRomCurve3(pts,true);
+}
+const railMat=new THREE.MeshStandardMaterial({color:0xe23a4f,metalness:.4,roughness:.45});
+const spineMat=new THREE.MeshStandardMaterial({color:0xf2f2f2,metalness:.3,roughness:.5});
+const segs=Math.round(TR.L*2);
+scene.add(new THREE.Mesh(new THREE.TubeGeometry(offsetCurve([ 0.62,0]),segs,0.14,6,true),railMat));
+scene.add(new THREE.Mesh(new THREE.TubeGeometry(offsetCurve([-0.62,0]),segs,0.14,6,true),railMat));
+scene.add(new THREE.Mesh(new THREE.TubeGeometry(offsetCurve([0,-0.55]),segs,0.3,8,true),spineMat));
+
+// まくらぎ（チェーン区間は黄色、ブレーキ区間はオレンジ）
+const tieStep=1.1, tieCount=Math.floor(TR.L/tieStep);
+const ties=new THREE.InstancedMesh(new THREE.BoxGeometry(1.6,0.14,0.32),new THREE.MeshLambertMaterial({color:0xffffff}),tieCount);
+const m4=new THREE.Matrix4(), fr=mkFrame(), col=new THREE.Color();
+for(let k=0;k<tieCount;k++){
+  const s=k*tieStep; frameAt(s,fr);
+  m4.makeBasis(fr.b,fr.n,fr.t); m4.setPosition(fr.p.clone().addScaledVector(fr.n,-0.2));
+  ties.setMatrixAt(k,m4);
+  col.set(s>S.stationEnd&&s<S.liftEnd?0xffc531:(s>S.brake&&s<S.stop?0xff8a3d:0x4b5873));
+  ties.setColorAt(k,col);
+}
+scene.add(ties);
+
+// 支柱
+const posts=[]; for(let s=0;s<TR.L;s+=7){ frameAt(s,fr); if(fr.p.y>2.2) posts.push({p:fr.p.clone(),h:fr.p.y-0.8}); }
+const postMesh=new THREE.InstancedMesh(new THREE.CylinderGeometry(0.22,0.3,1,8),new THREE.MeshLambertMaterial({color:0xe9edf3}),posts.length);
+posts.forEach((q,k)=>{ m4.makeScale(1,q.h,1); m4.setPosition(q.p.x,q.h/2,q.p.z); postMesh.setMatrixAt(k,m4); });
+scene.add(postMesh);
+
+// えき
+{
+  const s0=0, s1=S.stationEnd, mid=(s0+s1)/2; frameAt(mid,fr);
+  const len=s1-s0+6;
+  const g=new THREE.Group();
+  const deck=new THREE.Mesh(new THREE.BoxGeometry(5,2.4,len),new THREE.MeshLambertMaterial({color:0xc7ced9}));
+  deck.position.set(3.4,-1.6,0); g.add(deck);
+  const deck2=deck.clone(); deck2.position.x=-3.4; g.add(deck2);
+  const roof=new THREE.Mesh(new THREE.BoxGeometry(13,0.5,len+2),new THREE.MeshLambertMaterial({color:0x2f6fcf}));
+  roof.position.y=5; g.add(roof);
+  for(const x of [-6,6]) for(const z of [-len/2+1,len/2-1]){ const c=new THREE.Mesh(new THREE.BoxGeometry(0.4,5,0.4),new THREE.MeshLambertMaterial({color:0xffffff})); c.position.set(x,2.5,z); g.add(c); }
+  m4.makeBasis(fr.b,new THREE.Vector3(0,1,0),fr.t); g.quaternion.setFromRotationMatrix(m4); g.position.copy(fr.p);
+  scene.add(g);
+}
+
+// 木
+{
+  const pos=[]; let tries=0;
+  while(pos.length<170&&tries<4000){ tries++;
+    const x=-330+rnd()*660, z=-180+rnd()*480;
+    let ok=true; for(let i=0;i<TR.N;i+=12){ const p=TR.P[i]; if((p.x-x)**2+(p.z-z)**2<12*12){ok=false;break;} }
+    if(ok) pos.push([x,z,0.7+rnd()*0.8]);
+  }
+  const trunk=new THREE.InstancedMesh(new THREE.CylinderGeometry(0.4,0.5,3,6),new THREE.MeshLambertMaterial({color:0x7a5532}),pos.length);
+  const leaf=new THREE.InstancedMesh(new THREE.ConeGeometry(3,7,8),new THREE.MeshLambertMaterial({color:0x2f7d3b}),pos.length);
+  pos.forEach(([x,z,k],i)=>{ m4.makeScale(k,k,k); m4.setPosition(x,1.5*k,z); trunk.setMatrixAt(i,m4); m4.setPosition(x,(3+3.5)*k,z); leaf.setMatrixAt(i,m4);
+    leaf.setColorAt(i,col.setHSL(0.3+rnd()*0.06,0.45,0.28+rnd()*0.1)); });
+  scene.add(trunk,leaf);
+}
+
+// よそうポイントの目印（空中の丸い記号）
+function letterTex(k,on){ return canvasTex(128,128,(g)=>{g.fillStyle=on?'#ffd23f':'#ffffff';g.beginPath();g.arc(64,64,56,0,Math.PI*2);g.fill();g.lineWidth=8;g.strokeStyle='#14213d';g.stroke();g.fillStyle='#14213d';g.font='bold 76px sans-serif';g.textAlign='center';g.textBaseline='middle';g.fillText(k,64,70);}); }
+for(const L of LETTERS){
+  L.tex=[letterTex(L.k,false),letterTex(L.k,true)];
+  L.sprite=new THREE.Sprite(new THREE.SpriteMaterial({map:L.tex[0],depthTest:false}));
+  frameAt(L.s,fr); L.sprite.position.copy(fr.p).add(_v1.set(0,9,0)); L.sprite.scale.set(6,6,1); L.sprite.renderOrder=5;
+  scene.add(L.sprite);
+  const pole=new THREE.Mesh(new THREE.CylinderGeometry(0.08,0.08,5.5,6),new THREE.MeshBasicMaterial({color:0x14213d}));
+  pole.position.copy(fr.p).add(_v1.set(0,4.2,0)); scene.add(pole);
+}
+
+// 車両（進む向き＝ローカル+z）
+const cars=[];
+{
+  const bodyTex=canvasTex(256,64,(g,w,h)=>{g.fillStyle='#ffd23f';g.fillRect(0,0,w,h);g.fillStyle='#e23a4f';g.fillRect(0,h*0.55,w,h*0.2);g.fillStyle='#14213d';g.fillRect(0,h*0.85,w,h*0.15);});
+  const bodyMat=new THREE.MeshLambertMaterial({map:bodyTex});
+  const seatMat=new THREE.MeshLambertMaterial({color:0x1d2b4a});
+  const skin=[0xf2c9a8,0xd9a77f,0xf5d6bd], shirt=[0x3d8bfd,0x17a861,0xe23a4f,0x9b59d0,0xff7a2f,0x14b8c4];
+  for(let c=0;c<CFG.carCount;c++){
+    const g=new THREE.Group();
+    const body=new THREE.Mesh(new THREE.BoxGeometry(1.9,0.9,3.4),bodyMat); body.position.y=0.75; g.add(body);
+    if(c===0){ const nose=new THREE.Mesh(new THREE.CylinderGeometry(0.45,0.95,1.1,4,1),bodyMat); nose.rotation.x=Math.PI/2; nose.rotation.y=Math.PI/4; nose.position.set(0,0.7,2.1); g.add(nose); }
+    for(const z of [-0.8,0.8]){
+      const seat=new THREE.Mesh(new THREE.BoxGeometry(1.7,1.0,0.25),seatMat); seat.position.set(0,1.5,z-0.5); g.add(seat);
+      for(const x of [-0.45,0.45]){
+        const torso=new THREE.Mesh(new THREE.BoxGeometry(0.55,0.6,0.35),new THREE.MeshLambertMaterial({color:shirt[(c*4+(z>0?2:0)+(x>0?1:0))%shirt.length]}));
+        torso.position.set(x,1.45,z-0.15); g.add(torso);
+        const head=new THREE.Mesh(new THREE.SphereGeometry(0.27,12,10),new THREE.MeshLambertMaterial({color:skin[(c+x>0)%3|0]}));
+        head.position.set(x,1.98,z-0.15); g.add(head);
+      }
+    }
+    scene.add(g); cars.push(g);
+  }
+}
+
+// ============================================================
+// カメラ
+// ============================================================
+const controls=new OrbitControls(camera,renderer.domElement);
+const courseCenter=new THREE.Vector3(-10,8,65);
+controls.target.copy(courseCenter); controls.enableDamping=true; controls.maxPolarAngle=Math.PI/2.08;
+controls.minDistance=30; controls.maxDistance=650; controls.enabled=false;
+let camMode='side';
+function setCamera(mode){
+  camMode=mode;
+  document.querySelectorAll('#camSeg button').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.cam===mode)));
+  controls.enabled=(mode==='all');
+  camera.up.set(0,1,0);
+  if(mode==='all'){ camera.position.set(courseCenter.x+40,230,courseCenter.z+330); controls.target.copy(courseCenter); controls.update(); }
+  camJump=true;
+}
+let camJump=true;
+const cf=mkFrame(), cf2=mkFrame();
+function updateCamera(dt){
+  frameAt(G.s,cf);
+  if(camMode==='ride'){
+    camera.position.copy(cf.p).addScaledVector(cf.n,2.2).addScaledVector(cf.t,1.5);   // 先頭の人の前から見る
+    frameAt(G.s+12,cf2);
+    camera.up.copy(cf.n);
+    camera.lookAt(_v2.copy(cf2.p).addScaledVector(cf2.n,1.6));
+  } else if(camMode==='side'){
+    const out=_v1.set(cf.p.x-courseCenter.x,0,cf.p.z-courseCenter.z).normalize();
+    const want=_v2.copy(cf.p).addScaledVector(out,30).add(new THREE.Vector3(0,9,0));
+    if(want.y<4) want.y=4;
+    if(camJump){ camera.position.copy(want); camJump=false; }
+    else camera.position.lerp(want,1-Math.pow(0.04,dt));
+    camera.up.set(0,1,0);
+    camera.lookAt(cf.p.x,cf.p.y+1,cf.p.z);
+  } else {
+    controls.update();
+  }
+}
+
+// ============================================================
+// 音（Web Audio で合成）
+// ============================================================
+const SND={ctx:null,on:true,wind:null,windGain:null,windFilt:null,brakeGain:null,clickT:0};
+function initAudio(){
+  if(SND.ctx){ SND.ctx.resume(); return; }
+  const AC=window.AudioContext||window.webkitAudioContext; if(!AC) return;
+  const ctx=new AC(); SND.ctx=ctx; ctx.resume();
+  const buf=ctx.createBuffer(1,ctx.sampleRate*2,ctx.sampleRate); const d=buf.getChannelData(0); for(let i=0;i<d.length;i++) d[i]=Math.random()*2-1;
+  const mk=(type,freq)=>{ const src=ctx.createBufferSource(); src.buffer=buf; src.loop=true; const f=ctx.createBiquadFilter(); f.type=type; f.frequency.value=freq; const gn=ctx.createGain(); gn.gain.value=0; src.connect(f).connect(gn).connect(ctx.destination); src.start(); return {f,gn}; };
+  const w=mk('bandpass',400); SND.windFilt=w.f; SND.windGain=w.gn;
+  const b=mk('highpass',3000); SND.brakeGain=b.gn;
+}
+function clack(){
+  if(!SND.ctx||!SND.on) return; const ctx=SND.ctx,t=ctx.currentTime;
+  const o=ctx.createOscillator(), gn=ctx.createGain(); o.type='square'; o.frequency.value=900;
+  gn.gain.setValueAtTime(0.06,t); gn.gain.exponentialRampToValueAtTime(0.001,t+0.04); o.connect(gn).connect(ctx.destination); o.start(t); o.stop(t+0.05);
+}
+function bell(){
+  if(!SND.ctx||!SND.on) return; const ctx=SND.ctx,t=ctx.currentTime;
+  [880,1320].forEach((f,i)=>{ const o=ctx.createOscillator(),gn=ctx.createGain(); o.type='sine'; o.frequency.value=f; gn.gain.setValueAtTime(0.0001,t+i*0.18); gn.gain.exponentialRampToValueAtTime(0.15,t+i*0.18+0.02); gn.gain.exponentialRampToValueAtTime(0.0001,t+i*0.18+0.6); o.connect(gn).connect(ctx.destination); o.start(t+i*0.18); o.stop(t+i*0.18+0.7); });
+}
+function updateAudio(dt){
+  if(!SND.ctx) return; const t=SND.ctx.currentTime;
+  const run=!G.paused&&SND.on;
+  const v=G.v, wind=run?Math.min(0.35,(v/28)**2*0.35):0;
+  SND.windGain.gain.setTargetAtTime(wind,t,0.1);
+  SND.windFilt.frequency.setTargetAtTime(250+v*25,t,0.1);
+  SND.brakeGain.gain.setTargetAtTime(run&&G.phase==='brake'&&v>2?0.05:0,t,0.1);
+  if(run&&G.phase==='lift'){ SND.clickT-=dt; if(SND.clickT<=0){ clack(); SND.clickT=0.9/CFG.liftSpeed; } }
+}
+
+// ============================================================
+// ゲームの状態と物理（コースに沿った1次元の運動）
+//   e = 1kgあたりの力学的エネルギー（v²/2 + g·y）。地面を高さ0とする
+//   車両は .position ではなく G.s（コースの道のり m）で動かしています
+// ============================================================
+const G={
+  phase:'ready', s:S.start, v:0, e:0, decel:0, a:0, gforce:1, gShow:1,
+  paused:true, t:0, frames:0, elapsed:0,
+  prediction:null, maxV:0, maxS:0, trail:[], letterV:{}, best:null,
+};
+function resetRide(){
+  Object.assign(G,{phase:'ready',s:S.start,v:0,e:CFG.g*sample(TR.Y,S.start),decel:0,a:0,gforce:1,gShow:1,t:0,maxV:0,maxS:0,trail:[],letterV:{},best:null});
+  goBtn.disabled=false; goBtn.textContent='しゅっぱつ';
+  renderLetters(); updateCaption(true);
+}
+function startRide(){
+  if(G.phase!=='ready'){ resetRide(); return; }
+  G.phase='lift'; G.v=CFG.liftSpeed; bell();
+  goBtn.disabled=true; goBtn.textContent='はしっています';
+  updateCaption(true);
+}
+function step(dt){
+  const g=CFG.g;
+  if(G.phase==='ready'||G.phase==='done'){ G.v=0; G.a=0; }
+  else if(G.phase==='lift'){
+    G.v=CFG.liftSpeed; G.a=0; G.s+=G.v*dt;
+    if(G.s>=S.liftEnd){ G.phase='free'; G.e=G.v*G.v/2+g*sample(TR.Y,G.s); }
+    else G.e=G.v*G.v/2+g*sample(TR.Y,G.s);
+  } else {
+    if(G.phase==='free'&&G.s>=S.brake){ G.phase='brake'; G.decel=Math.max(0,(G.e-g*CFG.stopHeight)/(S.stop-G.s)); }
+    if(G.phase==='brake') G.e-=G.decel*G.v*dt;
+    G.s+=G.v*dt;
+    const y=sample(TR.Y,G.s), k=2*(G.e-g*y);
+    let v=Math.sqrt(Math.max(0,k));
+    if(G.phase==='brake'&&S.stop-G.s<15) v=Math.max(v,1.2);   // 最後は止まりきるまでゆっくり進める（遊びやすさの補正）
+    if(G.phase==='free') v=Math.max(v,0.5);                     // 山の上で止まらないようにする補正
+    G.v=v; G.a=-g*sample(TR.DY,G.s)-(G.phase==='brake'?G.decel:0);
+    if(G.phase==='brake'&&G.s>=S.stop){ G.s=S.stop; G.v=0; G.phase='done'; G.e=g*CFG.stopHeight; finishRide(); }
+  }
+  // からだのおもさ（上下方向の見かけの重さ ÷ ふだんの重さ）
+  const dy=sample(TR.DY,G.s), ddy=sample(TR.DDY,G.s);
+  G.gforce=1+(ddy*G.v*G.v+dy*G.a)/g;
+  // 記録
+  if(G.phase!=='ready'&&G.phase!=='done'){
+    if(G.v>G.maxV){ G.maxV=G.v; G.maxS=G.s; }
+    for(const L of LETTERS) if(G.letterV[L.k]===undefined&&G.s>=L.s) G.letterV[L.k]=G.v;
+    const last=G.trail[G.trail.length-1];
+    if(!last||G.s-last.s>1.5) G.trail.push({s:G.s,v:G.v});
+  }
+  G.t+=dt;
+}
+function finishRide(){
+  let best=null; for(const L of LETTERS){ if(!best||G.letterV[L.k]>G.letterV[best]) best=L.k; }
+  G.best=best; goBtn.disabled=false; goBtn.textContent='もういちど'; bell();
+  renderLetters(); updateCaption(true);
+}
+
+// ============================================================
+// 画面表示（HUD）
+// ============================================================
+const $=(id)=>document.getElementById(id);
+const goBtn=$('goBtn'), captionEl=$('caption');
+const R=(k,r)=>`<ruby>${k}<rt>${r}</rt></ruby>`;
+let lastCaptionKey='';
+function captionKey(){
+  if(G.phase==='ready') return G.prediction?'ready2':'ready';
+  if(G.phase==='lift') return 'lift';
+  if(G.phase==='brake') return 'brake';
+  if(G.phase==='done') return 'done';
+  const dy=sample(TR.DY,G.s); return dy<-0.08?'down':(dy>0.08?'up':lastCaptionKey||'down');
+}
+function updateCaption(force){
+  const key=captionKey(); if(!force&&key===lastCaptionKey) return; lastCaptionKey=key;
+  const PE=`<span class="pe-t" style="color:#8fbcff">${R('位置','いち')}エネルギー</span>`, KE=`<span class="ke-t" style="color:#ffb185">${R('運動','うんどう')}エネルギー</span>`;
+  let h='';
+  if(key==='ready') h=`いちばん ${R('速','はや')}く なるのは どこかな？<br>${R('下','した')}の <b>A〜E</b> を タップして よそうしよう`;
+  else if(key==='ready2') h=`よそう：<b style="color:var(--total)">${G.prediction}</b>　「しゅっぱつ」を ${R('押','お')}そう`;
+  else if(key==='lift') h=`チェーンで ${R('高','たか')}い ところへ。${PE}が たまっていく`;
+  else if(key==='down') h=`${R('下','くだ')}る → ${PE}が ${KE}に かわる`;
+  else if(key==='up') h=`${R('上','のぼ')}る → ${KE}が ${PE}に もどる`;
+  else if(key==='brake') h=`ブレーキ：エネルギーが ${R('熱','ねつ')}や ${R('音','おと')}に かわって ${R('止','と')}まる`;
+  else if(key==='done'){
+    const kmh=Math.round(G.letterV[G.best]*3.6);
+    let pr='';
+    if(G.prediction) pr = G.prediction===G.best ? `よそう ${G.prediction} → <b style="color:#5be08f">せいかい！</b><br>` : `よそう ${G.prediction} → ざんねん<br>`;
+    h=`${pr}いちばん ${R('速','はや')}かったのは <b style="color:var(--total)">${G.best}</b>（${R('時速','じそく')} ${kmh}km）<br>いちばん ${R('低','ひく')}い ところで、いちばん ${R('速','はや')}くなる`;
+  }
+  captionEl.innerHTML=h;
+}
+
+const barPE=$('barPE').firstElementChild, barKE=$('barKE').firstElementChild;
+const totKE=$('barTot').querySelector('.ke'), totPE=$('barTot').querySelector('.pe');
+const speedNum=$('speedNum'), speedMs=$('speedMs'), heightNum=$('heightNum'), gNum=$('gNum'), gNeedle=$('gNeedle'), gWord=$('gWord');
+function updateHUD(dt){
+  const y=sample(TR.Y,G.s), pe=CFG.g*y, ke=G.v*G.v/2, max=CFG.g*CFG.barMaxH;
+  const pct=(x)=>Math.max(0,Math.min(100,x/max*100)).toFixed(1)+'%';
+  barPE.style.height=pct(pe); barKE.style.height=pct(ke);
+  totPE.style.height=pct(pe); totPE.style.bottom='0'; totKE.style.height=pct(ke); totKE.style.bottom=pct(pe);
+  speedNum.textContent=Math.round(G.v*3.6);
+  speedMs.textContent=G.v.toFixed(1);
+  heightNum.textContent=Math.round(y);
+  G.gShow+=(G.gforce-G.gShow)*(1-Math.pow(0.002,dt));
+  const gv=G.gShow;
+  gNum.textContent='×'+Math.max(0,gv).toFixed(1);
+  gNeedle.style.left=(Math.max(0,Math.min(3,gv))/3*100)+'%';
+  gWord.textContent = G.phase==='ready'||G.phase==='done' ? '' : gv<0.7?'ふわっ！':(gv>1.4?'ぐっ！':'ふつう');
+  gWord.style.color = gv<0.7?'#7fd3ff':(gv>1.4?'#ff9a6b':'var(--muted)');
+  updateCaption(false);
+}
+
+// 下のグラフ（高さと速さ）
+const pc=$('profile'), pctx=pc.getContext('2d'), lettersEl=$('letters');
+let PW=0,PH=0, prof=[];
+const PAD={l:34,r:40,t:8,b:16};
+const px=(s)=>PAD.l+s/TR.L*(PW-PAD.l-PAD.r);
+const pyH=(y)=>PAD.t+(1-y/CFG.barMaxH)*(PH-PAD.t-PAD.b);
+const pyV=(kmh)=>PAD.t+(1-kmh/CFG.speedAxisMax)*(PH-PAD.t-PAD.b);
+function resizeProfile(){
+  const r=pc.getBoundingClientRect(), d=Math.min(window.devicePixelRatio,2);
+  PW=r.width; PH=r.height; pc.width=Math.round(PW*d); pc.height=Math.round(PH*d); pctx.setTransform(d,0,0,d,0,0);
+  prof=[]; for(let i=0;i<=400;i++){ const s=TR.L*i/400; prof.push([px(s),pyH(sample(TR.Y,s))]); }
+  for(const L of LETTERS) if(L.btn) L.btn.style.left=px(L.s)+'px';
+}
+function drawProfile(){
+  const c=pctx; c.clearRect(0,0,PW,PH);
+  const simple=document.body.classList.contains('simple');
+  // 目盛り
+  c.font='11px "BIZ UDPGothic",sans-serif'; c.lineWidth=1;
+  for(const h of [0,10,20,30,40]){ const y=pyH(h); c.strokeStyle='rgba(255,255,255,.08)'; c.beginPath(); c.moveTo(PAD.l,y); c.lineTo(PW-PAD.r,y); c.stroke(); c.fillStyle='#b9c5de'; c.textAlign='right'; c.fillText(h+'m',PAD.l-4,y+4); }
+  if(!simple){ c.fillStyle='#ffb185'; c.textAlign='left'; for(const k of [0,40,80,120]) c.fillText(k+'km',PW-PAD.r+4,pyV(k)+4); }
+  // チェーンとブレーキの区間
+  const band=(s0,s1,color,label)=>{ c.fillStyle=color; c.fillRect(px(s0),PH-PAD.b+3,px(s1)-px(s0),5); c.textAlign='center'; c.fillText(label,(px(s0)+px(s1))/2,PH-1); };
+  band(S.stationEnd,S.liftEnd,'#ffc531','チェーン'); band(S.brake,S.stop,'#ff8a3d','ブレーキ');
+  c.fillStyle='#b9c5de'; c.textAlign='left'; c.fillText('えき',PAD.l,PH-1);
+  // 高さ
+  c.beginPath(); c.moveTo(prof[0][0],pyH(0)); for(const [x,y] of prof) c.lineTo(x,y); c.lineTo(prof[prof.length-1][0],pyH(0)); c.closePath();
+  c.fillStyle='rgba(142,163,199,.28)'; c.fill();
+  c.beginPath(); prof.forEach(([x,y],i)=>i?c.lineTo(x,y):c.moveTo(x,y)); c.strokeStyle='#8ea3c7'; c.lineWidth=2.5; c.stroke();
+  // よそうポイントの縦線
+  for(const L of LETTERS){ const x=px(L.s); c.strokeStyle=G.prediction===L.k?'#ffd23f':'rgba(255,255,255,.3)'; c.setLineDash([3,3]); c.lineWidth=1.5; c.beginPath(); c.moveTo(x,0); c.lineTo(x,pyH(sample(TR.Y,L.s))); c.stroke(); c.setLineDash([]); }
+  // 速さの線
+  if(G.trail.length>1){ c.beginPath(); G.trail.forEach((q,i)=>{ const x=px(q.s), y=pyV(q.v*3.6); i?c.lineTo(x,y):c.moveTo(x,y); }); c.strokeStyle='#ff7a2f'; c.lineWidth=3; c.stroke(); }
+  // いちばん速かった所
+  if(G.phase==='done'&&G.maxV>0){ const x=px(G.maxS), y=pyV(G.maxV*3.6); c.fillStyle='#ff7a2f'; c.beginPath(); c.arc(x,y,6,0,Math.PI*2); c.fill(); }
+  // 車両の位置
+  const x=px(G.s), y=pyH(sample(TR.Y,G.s));
+  c.fillStyle='#ffd23f'; c.strokeStyle='#14213d'; c.lineWidth=2; c.beginPath(); c.arc(x,y,7,0,Math.PI*2); c.fill(); c.stroke();
+}
+function renderLetters(){
+  for(const L of LETTERS){
+    if(!L.btn){
+      L.btn=document.createElement('button'); L.btn.className='letter';
+      L.btn.innerHTML=`<b>${L.k}</b><small></small>`;
+      L.btn.addEventListener('click',()=>{ if(G.phase!=='ready') return; G.prediction=L.k; renderLetters(); updateCaption(true); });
+      lettersEl.appendChild(L.btn);
+    }
+    L.btn.setAttribute('aria-pressed',String(G.prediction===L.k));
+    L.btn.setAttribute('aria-label',`よそう ${L.k}`);
+    const v=G.letterV[L.k]; L.btn.querySelector('small').textContent = v!==undefined?Math.round(v*3.6)+'km':'';
+    L.btn.classList.toggle('best',G.phase==='done'&&G.best===L.k);
+    L.sprite.material.map=L.tex[G.prediction===L.k?1:0];
+  }
+  resizeProfile();
+}
+
+// ============================================================
+// メインループ（delta-time を 1/30秒でクランプ）
+// ============================================================
+const fc=mkFrame();
+function placeCars(){
+  cars.forEach((car,i)=>{ frameAt(G.s-i*CFG.carGap,fc); m4.makeBasis(fc.b,fc.n,fc.t); car.quaternion.setFromRotationMatrix(m4); car.position.copy(fc.p); });
+}
+function advance(dt){
+  const total=dt*CFG.timeScale; const n=Math.max(1,Math.ceil(total/(1/120)));
+  for(let i=0;i<n;i++) step(total/n);
+}
+let lastT=performance.now();
+function loop(now){
+  let dt=(now-lastT)/1000; lastT=now; dt=Math.min(Math.max(dt,0),1/30);
+  G.frames++;
+  if(!G.paused){ G.elapsed+=dt; advance(dt); }
+  placeCars(); updateCamera(dt); updateHUD(dt); drawProfile(); updateAudio(dt);
+  renderer.render(scene,camera);
+  requestAnimationFrame(loop);
+}
+
+function onResize(){
+  const w=window.innerWidth,h=window.innerHeight; renderer.setSize(w,h); camera.aspect=w/h; camera.updateProjectionMatrix(); resizeProfile();
+}
+window.addEventListener('resize',onResize);
+
+// ============================================================
+// ボタン類
+// ============================================================
+goBtn.addEventListener('click',startRide);
+document.querySelectorAll('#camSeg button').forEach(b=>b.addEventListener('click',()=>setCamera(b.dataset.cam)));
+$('soundBtn').addEventListener('click',(e)=>{ SND.on=!SND.on; e.currentTarget.setAttribute('aria-pressed',String(SND.on)); e.currentTarget.textContent=SND.on?'おと：オン':'おと：オフ'; });
+function setSimple(on){ document.body.classList.toggle('simple',on); $('simpleBtn').setAttribute('aria-pressed',String(on)); }
+$('simpleBtn').addEventListener('click',()=>setSimple(!document.body.classList.contains('simple')));
+const helpEl=$('help'), startBtn=$('startBtn');
+function openHelp(){ helpEl.hidden=false; G.paused=true; startBtn.textContent=G.started?'つづける':'はじめる'; }
+function closeHelp(){ helpEl.hidden=true; G.paused=false; G.started=true; initAudio(); }
+startBtn.addEventListener('click',closeHelp);
+$('helpBtn').addEventListener('click',openHelp);
+
+// ============================================================
+// iPad対策（ズーム・スクロール防止）
+// ============================================================
+document.addEventListener('gesturestart',e=>e.preventDefault(),{passive:false});
+document.addEventListener('gesturechange',e=>e.preventDefault(),{passive:false});
+let lastTouchEnd=0;
+document.addEventListener('touchend',e=>{ const t=Date.now(); if(t-lastTouchEnd<=300) e.preventDefault(); lastTouchEnd=t; },{passive:false});
+document.addEventListener('touchmove',e=>{ if(!e.target.closest('#help .card')) e.preventDefault(); },{passive:false});
+document.addEventListener('dblclick',e=>e.preventDefault());
+
+// ============================================================
+// テスト用フック
+//   車両は .position ではなく G.s（コースの道のり m）で動かしています。
+//   G.phase: 'ready' → 'lift'（チェーン）→ 'free' → 'brake' → 'done'
+// ============================================================
+window.__game={
+  state:G, cars, camera, track:TR, points:S, letters:LETTERS, CFG,
+  api:{
+    tick(n=1,dt=1/60){ for(let i=0;i<n;i++){ G.frames++; G.elapsed+=dt; advance(dt); } placeCars(); updateHUD(dt); return G; },
+    getState(){ const y=sample(TR.Y,G.s); return {phase:G.phase,s:G.s,v:G.v,kmh:G.v*3.6,height:y,pe:CFG.g*y,ke:G.v*G.v/2,gforce:G.gforce,prediction:G.prediction,best:G.best,letterV:{...G.letterV},frames:G.frames,elapsed:G.elapsed}; },
+    start:startRide, reset:resetRide, predict(k){ if(G.phase==='ready'){ G.prediction=k; renderLetters(); updateCaption(true);} },
+    setCamera, closeHelp, openHelp, setSimple,
+  },
+};
+
+setSimple(CFG.simple);
+onResize(); resetRide(); setCamera('side'); openHelp();
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>
