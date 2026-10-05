@@ -114,9 +114,10 @@ body.graph-faint #profileBox{opacity:.55}
 body.graph-faint #controls,body.graph-hide #controls{opacity:.55}
 body.graph-hide #profileBox{opacity:0;pointer-events:none}
 #profile{flex:1 1 0;min-height:0}
-#lineBtn{flex-direction:column;gap:0;line-height:1.15}
-#lineBtn small{font-size:11px;font-weight:400}
-#lineBtn b{font-size:15px}
+#lineBtn,#spdBtn{flex-direction:column;gap:0;line-height:1.15}
+body.spd-off #lgSpeed{display:none}
+#lineBtn small,#spdBtn small{font-size:11px;font-weight:400}
+#lineBtn b,#spdBtn b{font-size:15px}
 
 
 @media (max-width:900px){
@@ -142,7 +143,7 @@ body.graph-hide #profileBox{opacity:0;pointer-events:none}
 </script>
 </head>
 <body>
-<!-- build: 2026-10-04 #11 -->
+<!-- build: 2026-10-05 #12 -->
 <div id="view"></div>
 
 <div id="speedPanel" class="panel" aria-live="off">
@@ -168,6 +169,7 @@ body.graph-hide #profileBox{opacity:0;pointer-events:none}
     <div class="seg small">
       <button id="soundBtn" aria-pressed="true">おと：オン</button>
       <button id="lineBtn"></button>
+      <button id="spdBtn"></button>
     </div>
   </div>
   <div id="profileBox" class="panel">
@@ -179,7 +181,7 @@ body.graph-hide #profileBox{opacity:0;pointer-events:none}
       </span>
       <span class="lg">
         <span><i class="sw" style="background:#8ea3c7"></i><ruby>高<rt>たか</rt></ruby>さ</span>
-        <span><i class="sw" style="background:var(--ke)"></i><ruby>速<rt>はや</rt></ruby>さ</span>
+        <span id="lgSpeed"><i class="sw" style="background:var(--ke)"></i><ruby>速<rt>はや</rt></ruby>さ</span>
       </span>
     </div>
     <div id="letters"></div>
@@ -215,7 +217,7 @@ body.graph-hide #profileBox{opacity:0;pointer-events:none}
     </div>
     <p class="lead" style="margin:12px 0 0;font-size:15px">こまったら <ruby>右上<rt>みぎうえ</rt></ruby>の「？」で この <ruby>説明<rt>せつめい</rt></ruby>が <ruby>出<rt>で</rt></ruby>るよ（<ruby>見<rt>み</rt></ruby>ている <ruby>間<rt>あいだ</rt></ruby>は ストップ）。</p>
     <div class="foot"><button id="startBtn">はじめる</button></div>
-    <p id="ver">v2026-10-04-11</p>
+    <p id="ver">v2026-10-05-12</p>
   </div>
 </div>
 
@@ -258,6 +260,7 @@ const CFG = {
   buildAxisMax: 60,       // つくってみる のときのグラフの高さの最大 m
   stallDamp: 0.3,         // のぼれずに戻ってきたとき、ゆれを止めるための補正（大きいほど早く止まる）
   stallTime: 14,          // のぼれなかったあと、遅くともこの秒数で「おわり」にする
+  speedLine: true,        // オレンジの速さの線（と右の km の目もり）を出すか。ボタンで切りかえ。高さだけを見せたいときは false
   graphRide: 'show',      // 下のグラフ：'show'（あり）/'faint'（うすく）/'hide'（なし）。走る前・走っている間・こたえあわせ すべてに効く
 };
 
@@ -373,9 +376,9 @@ let seed=7; const rnd=()=>{seed=(seed*16807)%2147483647;return (seed-1)/21474836
 const grassTex=canvasTex(256,256,(g,w,h)=>{g.fillStyle='#6fae4c';g.fillRect(0,0,w,h);for(let i=0;i<2500;i++){g.fillStyle=`hsl(${95+rnd()*20},${40+rnd()*20}%,${32+rnd()*20}%)`;g.fillRect(rnd()*w,rnd()*h,2,2+rnd()*3);}});
 grassTex.wrapS=grassTex.wrapT=THREE.RepeatWrapping; grassTex.repeat.set(80,80);
 const ground=new THREE.Mesh(new THREE.PlaneGeometry(2400,2400),new THREE.MeshLambertMaterial({map:grassTex}));
-ground.rotation.x=-Math.PI/2; scene.add(ground);
+ground.rotation.x=-Math.PI/2; ground.position.y=-0.4; scene.add(ground);   // 広場より少し下げて、ちらつきを防ぐ
 // コースの下の広場
-const plaza=new THREE.Mesh(new THREE.CircleGeometry(1,64),new THREE.MeshLambertMaterial({color:0xd9c8a4,polygonOffset:true,polygonOffsetFactor:-4,polygonOffsetUnits:-4}));
+const plaza=new THREE.Mesh(new THREE.CircleGeometry(1,64),new THREE.MeshLambertMaterial({color:0xd9c8a4}));
 plaza.rotation.x=-Math.PI/2; plaza.scale.set(230,120,1); plaza.position.set(-10,0.25,65); scene.add(plaza);
 
 // レール・まくらぎ・支柱（コースを変えたら作り直す）
@@ -731,7 +734,7 @@ function drawProfile(){
   c.font='12px "BIZ UDPGothic",sans-serif'; c.lineWidth=1;
   for(const h of (G.game==='build'?[0,10,20,30,40,50,60]:[0,10,20,30,40])){ const y=pyH(h); c.strokeStyle='rgba(255,255,255,.08)'; c.beginPath(); c.moveTo(PAD.l,y); c.lineTo(PW-PAD.r,y); c.stroke();
     if(!ride||h%20===0){ c.fillStyle='#b9c5de'; c.textAlign='right'; c.fillText(h+'m',PAD.l-5,y+4); } }
-  if(G.trail.length>1){ c.fillStyle='#ffb185'; c.textAlign='left'; for(const k of (ride?[0,120]:[0,40,80,120])) c.fillText(k+'km',PW-PAD.r+5,pyV(k)+4); }
+  if(CFG.speedLine&&G.trail.length>1){ c.fillStyle='#ffb185'; c.textAlign='left'; for(const k of (ride?[0,120]:[0,40,80,120])) c.fillText(k+'km',PW-PAD.r+5,pyV(k)+4); }
   // チェーンとブレーキ
   const band=(s0,s1,color,label)=>{ c.fillStyle=color; c.fillRect(px(s0),PH-PAD.b+3,px(s1)-px(s0),4); if(!ride){ c.textAlign='center'; c.fillText(label,(px(s0)+px(s1))/2,PH-1);} };
   band(S.stationEnd,S.liftEnd,'#ffc531','チェーン'); band(S.brake,Math.min(S.stop,TR.L),'#ff8a3d','ブレーキ');
@@ -748,7 +751,7 @@ function drawProfile(){
     if(ride){ c.font='bold 13px "BIZ UDPGothic",sans-serif'; c.textAlign='center'; c.fillStyle=on?'#ffd23f':'#d5deee'; c.fillText(L.k,x,PAD.t+8); c.font='12px "BIZ UDPGothic",sans-serif'; }
   }
   // 速さの線
-  if(G.trail.length>1){
+  if(CFG.speedLine&&G.trail.length>1){
     const free=(s)=>s>=S.liftEnd&&s<=S.brake;
     const seg=(test,style,w,dash)=>{ c.beginPath(); let on=false;
       for(let i=1;i<G.trail.length;i++){ const a=G.trail[i-1], b=G.trail[i];
@@ -757,7 +760,7 @@ function drawProfile(){
     seg(s=>!free(s),'rgba(255,160,110,.75)',2.5,[7,5]);   // チェーン・ブレーキ（機械が速さを決めている所）
     seg(free,'#ff7a2f',3.5,[]);                         // 高さと速さが逆になる所
   }
-  if(G.phase==='done'&&G.maxV>0){ const x=px(G.maxS), y=pyV(G.maxV*3.6); c.fillStyle='#ff7a2f'; c.beginPath(); c.arc(x,y,6,0,Math.PI*2); c.fill(); }
+  if(CFG.speedLine&&G.phase==='done'&&G.maxV>0){ const x=px(G.maxS), y=pyV(G.maxV*3.6); c.fillStyle='#ff7a2f'; c.beginPath(); c.arc(x,y,6,0,Math.PI*2); c.fill(); }
   // 車両の位置
   const sd=G.s>TR.L?G.s-TR.L:G.s, x=px(sd), y=pyH(profileY(sample(TR.U,sd)));
   c.fillStyle='#ffd23f'; c.strokeStyle='#14213d'; c.lineWidth=2; c.beginPath(); c.arc(x,y,7,0,Math.PI*2); c.fill(); c.stroke();
@@ -896,6 +899,8 @@ const LINE_LABEL={show:'あり',faint:'うすく',hide:'なし'};
 const GRAPH_ORDER=['show','faint','hide'];
 function setGraphRide(m){ CFG.graphRide=m; document.body.classList.toggle('graph-faint',m==='faint'); document.body.classList.toggle('graph-hide',m==='hide'); $('lineBtn').innerHTML=`<small>グラフ</small><b>${LINE_LABEL[m]}</b>`; }
 $('lineBtn').addEventListener('click',()=>setGraphRide(GRAPH_ORDER[(GRAPH_ORDER.indexOf(CFG.graphRide)+1)%3]));
+function setSpeedLine(on){ CFG.speedLine=on; document.body.classList.toggle('spd-off',!on); $('spdBtn').innerHTML=`<small>速さの線</small><b>${on?'あり':'なし'}</b>`; }
+$('spdBtn').addEventListener('click',()=>setSpeedLine(!CFG.speedLine));
 const helpEl=$('help'), startBtn=$('startBtn');
 function openHelp(){ helpEl.hidden=false; G.paused=true; startBtn.textContent=G.started?'つづける':'はじめる'; }
 function closeHelp(){ helpEl.hidden=true; G.paused=false; G.started=true; initAudio(); }
@@ -923,13 +928,13 @@ window.__game={
     tick(n=1,dt=1/60){ for(let i=0;i<n;i++){ G.frames++; G.elapsed+=dt; advance(dt); } placeCars(); updateHUD(dt); return G; },
     getState(){ const y=sample(TR.Y,G.s); return {game:G.game,mode:G.mode,phase:G.phase,dir:G.dir,stalled:G.stalled,failed:G.failed,maxKmh:G.maxV*3.6,s:G.s,v:G.v,kmh:G.v*3.6,height:y,pe:CFG.g*y,ke:G.v*G.v/2,gforce:G.gforce,prediction:G.prediction,best:G.best,letterV:{...G.letterV},frames:G.frames,elapsed:G.elapsed}; },
     start:startRide, reset:resetRide, predict(k){ if(G.phase==='ready'){ G.prediction=k; renderLetters(); updateCaption(true);} },
-    setCamera, closeHelp, openHelp, setGraphRide, setGame, resetBuild,
+    setCamera, closeHelp, openHelp, setGraphRide, setSpeedLine, setGame, resetBuild,
     // つくってみる：i=0 スタート, 1〜3 山。高さ h(m) にしてコースを作り直す
     setHandle(i,h){ setHandle(handleList()[i],h); rebuildCourse(); },
   },
 };
 
-setGraphRide(CFG.graphRide);
+setGraphRide(CFG.graphRide); setSpeedLine(CFG.speedLine);
 onResize(); resetRide(); setCamera('side'); openHelp();
 requestAnimationFrame(loop);
 </script>
